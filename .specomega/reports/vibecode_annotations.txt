@@ -1,1 +1,0 @@
-::warning title=Vibecode::Detected Vibecode-related signals: vibecode, vibe [severity=medium]

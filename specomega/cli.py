@@ -15,14 +15,38 @@ from .engine import VerificationEngine
 def export_vibecode_report(result: dict, output_dir: Path, format_name: str = "json") -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "vibecode_report.json").write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
-    (output_dir / "vibecode_report.md").write_text(
-        "# Vibecode Report\n\n"
-        + f"- Severity: **{result.get('severity', 'none')}**\n"
-        + f"- Score: {result.get('score', 0)}\n\n"
-        + result.get("summary", "")
-        + "\n",
-        encoding="utf-8",
-    )
+    markdown_lines = [
+        "# Vibecode Report",
+        "",
+        f"- Severity: **{result.get('severity', 'none')}**",
+        f"- Score: {result.get('score', 0)}",
+        f"- Source Type: **{result.get('source_type', 'unknown')}**",
+        f"- Source Confidence: **{result.get('source_confidence', 0.0):.2f}**",
+        f"- Source Evidence: **{', '.join(result.get('source_evidence', [])) or 'n/a'}**",
+    ]
+    if result.get("source_summary"):
+        markdown_lines.append("")
+        markdown_lines.append("## Source Summary")
+        for source_type, count in sorted(result.get("source_summary", {}).items()):
+            markdown_lines.append(f"- {source_type}: {count}")
+    if result.get("language_summary"):
+        markdown_lines.append("")
+        markdown_lines.append("## Language Summary")
+        for language, count in sorted(result.get("language_summary", {}).items()):
+            markdown_lines.append(f"- {language}: {count}")
+    if result.get("summary_label"):
+        markdown_lines.append("")
+        markdown_lines.append(f"**{result.get('summary_label')}**")
+    if result.get("risk_level"):
+        markdown_lines.append("")
+        markdown_lines.append("## Governance Risk")
+        markdown_lines.append(f"- Risk Level: **{result.get('risk_level')}**")
+        if result.get("recommended_actions"):
+            markdown_lines.append("- Recommended Actions:")
+            for action in result.get("recommended_actions", []):
+                markdown_lines.append(f"  - {action}")
+    markdown_lines.extend(["", result.get("summary", ""), ""])
+    (output_dir / "vibecode_report.md").write_text("\n".join(markdown_lines), encoding="utf-8")
     if format_name == "sarif":
         sarif_payload = {
             "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
@@ -39,12 +63,12 @@ def export_vibecode_report(result: dict, output_dir: Path, format_name: str = "j
         (output_dir / "vibecode_report.sarif").write_text(json.dumps(sarif_payload, indent=2, ensure_ascii=False), encoding="utf-8")
 
     annotation_lines = [
-        f"::warning title=Vibecode::{result.get('summary', '')} [severity={result.get('severity', 'none')}]"
+        f"::warning title=Vibecode::{result.get('summary', '')} [severity={result.get('severity', 'none')}] [source={result.get('source_type', 'unknown')}] [confidence={result.get('source_confidence', 0.0):.2f}]"
     ] if result.get("is_vibecode") else []
     (output_dir / "vibecode_annotations.txt").write_text("\n".join(annotation_lines), encoding="utf-8")
 
     git_lines = [
-        f"[vibecode] severity={result.get('severity', 'none')} score={result.get('score', 0)} {result.get('summary', '')}"
+        f"[vibecode] severity={result.get('severity', 'none')} score={result.get('score', 0)} source={result.get('source_type', 'unknown')} confidence={result.get('source_confidence', 0.0):.2f} {result.get('summary', '')}"
     ] if result.get("is_vibecode") else []
     (output_dir / "vibecode_git.txt").write_text("\n".join(git_lines), encoding="utf-8")
 
@@ -172,9 +196,9 @@ def main() -> None:
                     expanded_paths.extend(str(item) for item in path.rglob("*") if item.is_file())
                 else:
                     expanded_paths.append(str(path))
-            result = analyzer.scan_paths(expanded_paths)
+            result = analyzer.scan_paths(expanded_paths, config_path=Path(args.config))
         else:
-            result = analyzer.analyze(args.text)
+            result = analyzer.analyze(args.text, config_path=Path(args.config))
         result["threshold"] = threshold
         result["is_vibecode"] = result.get("score", 0) >= threshold
         output_dir = Path(args.output_dir)
