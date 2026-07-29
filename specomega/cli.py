@@ -80,6 +80,19 @@ def export_vibecode_report(result: dict, output_dir: Path, format_name: str = "j
         markdown_lines.append(f"- matched: {dynamic.get('matched')}")
         if dynamic.get("matches"):
             markdown_lines.append(f"- matches: {', '.join(dynamic.get('matches', []))}")
+    if result.get("evidence_breakdown"):
+        markdown_lines.append("")
+        markdown_lines.append("## Evidence Breakdown")
+        for section, payload in result.get("evidence_breakdown", {}).items():
+            markdown_lines.append(f"- {section}: {json.dumps(payload, ensure_ascii=False)}")
+    if result.get("provenance_hints"):
+        markdown_lines.append("")
+        markdown_lines.append("## Provenance Hints")
+        markdown_lines.append(f"- {', '.join(result.get('provenance_hints', [])) or 'n/a'}")
+    if result.get("provenance_hints"):
+        markdown_lines.append("")
+        markdown_lines.append("## Repository Sources")
+        markdown_lines.append(f"- {', '.join(result.get('provenance_hints', [])) or 'n/a'}")
     if result.get("classification"):
         markdown_lines.append("")
         markdown_lines.append("## Classification")
@@ -192,6 +205,21 @@ def export_vibecode_report(result: dict, output_dir: Path, format_name: str = "j
             html_lines.append(f"<li><strong>matched:</strong> {result.get('dynamic_rules', {}).get('matched')}</li>")
             if result.get("dynamic_rules", {}).get("matches"):
                 html_lines.append(f"<li><strong>matches:</strong> {', '.join(result.get('dynamic_rules', {}).get('matches', []))}</li>")
+            html_lines.append("</ul>")
+        if result.get("evidence_breakdown"):
+            html_lines.append("<h2>Evidence Breakdown</h2>")
+            html_lines.append("<ul>")
+            for section, payload in result.get("evidence_breakdown", {}).items():
+                html_lines.append(f"<li><strong>{section}:</strong> {json.dumps(payload, ensure_ascii=False)}</li>")
+            html_lines.append("</ul>")
+        if result.get("provenance_hints"):
+            html_lines.append("<h2>Provenance Hints</h2>")
+            html_lines.append("<ul>")
+            html_lines.append(f"<li>{', '.join(result.get('provenance_hints', [])) or 'n/a'}</li>")
+            html_lines.append("</ul>")
+            html_lines.append("<h2>Repository Sources</h2>")
+            html_lines.append("<ul>")
+            html_lines.append(f"<li>{', '.join(result.get('provenance_hints', [])) or 'n/a'}</li>")
             html_lines.append("</ul>")
         if result.get("classification"):
             html_lines.append("<h2>Classification</h2>")
