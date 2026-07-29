@@ -5,7 +5,36 @@ from pathlib import Path
 from typing import Optional
 
 from .agents.orchestrator import MultiAgentOrchestrator
+from .analysis.risk_analyzer import analyze_agent_risks
 from .engine import VerificationEngine
+
+
+def export_sarif(report: dict) -> str:
+    findings = []
+    for item in report.get("findings", []):
+        findings.append({
+            "ruleId": item.get("type", "unknown"),
+            "level": "warning",
+            "message": {"text": item.get("message", "")},
+        })
+    payload = {
+        "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+        "version": "2.1.0",
+        "runs": [{
+            "tool": {"driver": {"name": "SpecOmega", "rules": []}},
+            "results": findings,
+        }],
+    }
+    return json.dumps(payload, indent=2, ensure_ascii=False)
+
+
+def export_html(report: dict) -> str:
+    body = "<html><body><h1>SpecOmega Risk Report</h1>"
+    body += f"<p>Risk Level: {report.get('risk_level', 'ok')}</p>"
+    for item in report.get("findings", []):
+        body += f"<p>{item.get('message', '')}</p>"
+    body += "</body></html>"
+    return body
 
 
 def main() -> None:
@@ -22,6 +51,13 @@ def main() -> None:
     plan = subparsers.add_parser("plan", help="Plan an SDD-style multi-agent workflow")
     plan.add_argument("--path", default=".", help="Path to a workflow spec file")
 
+    analyze_risk = subparsers.add_parser("risk", help="Analyze Agent risks and produce recommendations")
+    analyze_risk.add_argument("--spec", default="", help="Path to a spec file or inline text")
+    analyze_risk.add_argument("--trace", default="", help="Path to a JSON trace file")
+    analyze_risk.add_argument("--output-dir", default=".specomega/reports", help="Directory for markdown/json report output")
+    analyze_risk.add_argument("--format", choices=["json", "markdown", "sarif", "html"], default="json", help="Report format to emit")
+    analyze_risk.add_argument("--strict", action="store_true", help="Exit with status 1 when findings are present")
+
     args = parser.parse_args()
     if args.command == "verify":
         report = verify_path(args.path, framework=args.framework)
@@ -37,6 +73,35 @@ def main() -> None:
             spec = ""
         orchestrator = MultiAgentOrchestrator()
         print(json.dumps(orchestrator.execute(spec), indent=2, ensure_ascii=False))
+    elif args.command == "risk":
+        spec_text = args.spec
+        trace_text = args.trace
+        if args.spec and Path(args.spec).exists():
+            spec_text = Path(args.spec).read_text(encoding="utf-8")
+        if args.trace and Path(args.trace).exists():
+            trace_text = Path(args.trace).read_text(encoding="utf-8")
+            trace_payload = json.loads(trace_text)
+        else:
+            trace_payload = {}
+        report = analyze_agent_risks(spec_text, trace_payload, use_remote=False)
+        output_dir = Path(args.output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        (output_dir / "risk_report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+        (output_dir / "risk_report.md").write_text(report.get("report_markdown", ""), encoding="utf-8")
+        if args.format == "sarif":
+            (output_dir / "risk_report.sarif").write_text(export_sarif(report), encoding="utf-8")
+        elif args.format == "html":
+            (output_dir / "risk_report.html").write_text(export_html(report), encoding="utf-8")
+        if args.strict and report.get("risk_level") == "warning":
+            raise SystemExit(1)
+        if args.format == "json":
+            print(json.dumps(report, indent=2, ensure_ascii=False))
+        elif args.format == "markdown":
+            print(report.get("report_markdown", ""))
+        elif args.format == "sarif":
+            print(export_sarif(report))
+        else:
+            print(export_html(report))
 
 
 def verify_path(path: str, framework: str = "auto") -> dict:

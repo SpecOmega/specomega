@@ -1,11 +1,16 @@
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from specomega.engine import VerificationEngine
 from specomega.verifiers.ast_verifier import AstVerifier
 from specomega.agents.orchestrator import MultiAgentOrchestrator
+from specomega.analysis.llm_adapter import LLMAdapter
+from specomega.analysis.risk_analyzer import RiskAnalyzer, analyze_agent_risks
+from specomega.config import RuntimeConfig
 from specomega.verifiers.contract_verifier import ContractVerifier
 from specomega.verifiers.trace_verifier import TraceVerifier
 
@@ -109,6 +114,120 @@ class SpecOmegaEngineTests(unittest.TestCase):
         result = orchestrator.execute(spec)
         self.assertFalse(result["valid"])
         self.assertIn("reviewer", result["missing_roles"])
+
+    def test_risk_analyzer_reports_security_and_state_risks(self):
+        analyzer = RiskAnalyzer()
+        spec = """
+        ## [SEC-202]
+        Must call risk_check before pay.
+        """
+        trace = {
+            "tool_calls": ["pay"],
+            "risk_level": "medium",
+            "state": "running",
+            "repo": "user-service",
+            "action": "write",
+        }
+        report = analyzer.analyze(spec, trace, use_remote=False)
+        self.assertEqual("warning", report["risk_level"])
+        self.assertTrue(any(item["type"] == "tool_sequence" for item in report["findings"]))
+        self.assertTrue(report["recommendations"])
+
+    def test_analyze_agent_risks_cli_helper(self):
+        report = analyze_agent_risks(
+            "Must call risk_check before pay.",
+            {"tool_calls": ["risk_check", "pay"], "risk_level": "safe", "state": "idle"},
+            use_remote=False,
+        )
+        self.assertEqual("ok", report["risk_level"])
+
+    def test_llm_adapter_builds_structured_risk_summary(self):
+        adapter = LLMAdapter(provider="deepseek")
+        report = adapter.summarize_risk(
+            spec="Must call risk_check before pay.",
+            trace={"tool_calls": ["pay"], "risk_level": "medium", "state": "running"},
+            findings=[{"type": "tool_sequence", "message": "缺少风险检查前置步骤"}],
+        )
+        self.assertIn("risk_check", report["summary"].lower())
+        self.assertTrue(report["entities"])
+        self.assertTrue(report["relationships"])
+
+    def test_engine_mode_uses_local_risk_logic(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / "llm_config.json"
+            config_path.write_text(json.dumps({"mode": "engine", "enable_llm": False, "api_key": "dummy"}), encoding="utf-8")
+            adapter = LLMAdapter(provider="deepseek", config_path=config_path)
+            report = adapter.summarize_risk(
+                spec="Must call risk_check before pay.",
+                trace={"tool_calls": ["pay"], "risk_level": "medium", "state": "running"},
+                findings=[{"type": "tool_sequence", "message": "缺少风险检查前置步骤"}],
+            )
+            self.assertEqual("engine", adapter.mode)
+            self.assertFalse(report["remote"])
+            self.assertIn("工程模式", report["summary"])
+            self.assertEqual("engine_fallback", report["status"])
+
+    def test_runtime_config_reads_mode_from_file(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / "llm_config.json"
+            config_path.write_text(json.dumps({"mode": "llm", "enable_llm": True, "api_key": "x"}), encoding="utf-8")
+            config = RuntimeConfig.from_file(config_path)
+            self.assertEqual("llm", config.mode)
+            self.assertTrue(config.enable_llm)
+
+    def test_runtime_config_refreshes_when_file_changes(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / "llm_config.json"
+            config_path.write_text(json.dumps({"mode": "engine", "enable_llm": False}), encoding="utf-8")
+            config = RuntimeConfig.from_file(config_path)
+            self.assertEqual("engine", config.mode)
+            config_path.write_text(json.dumps({"mode": "llm", "enable_llm": True, "api_key": "x"}), encoding="utf-8")
+            refreshed = config.refresh()
+            self.assertEqual("llm", refreshed.mode)
+            self.assertTrue(refreshed.enable_llm)
+
+    def test_runtime_config_applies_llm_threshold_policy(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / "llm_config.json"
+            config_path.write_text(json.dumps({"mode": "llm", "enable_llm": True, "api_key": "x", "llm_threshold": "warning"}), encoding="utf-8")
+            config = RuntimeConfig.from_file(config_path)
+            self.assertTrue(config.should_use_llm("warning"))
+            self.assertFalse(config.should_use_llm("ok"))
+
+    def test_cli_can_export_sarif_and_fail_on_warning(self):
+        from specomega.cli import main
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            spec_path = Path(tmpdir) / "spec.md"
+            trace_path = Path(tmpdir) / "trace.json"
+            spec_path.write_text("Must call risk_check before pay.", encoding="utf-8")
+            trace_path.write_text(json.dumps({"tool_calls": ["pay"], "risk_level": "medium"}), encoding="utf-8")
+
+            with patch.object(sys, "argv", [
+                "specomega",
+                "risk",
+                "--spec",
+                str(spec_path),
+                "--trace",
+                str(trace_path),
+                "--output-dir",
+                tmpdir,
+                "--format",
+                "sarif",
+                "--strict",
+            ]):
+                with self.assertRaises(SystemExit) as cm:
+                    main()
+
+            self.assertEqual(1, cm.exception.code)
+            self.assertTrue(Path(tmpdir, "risk_report.sarif").exists())
+
+    def test_ci_workflow_exists_with_test_and_risk_steps(self):
+        workflow_path = Path(__file__).resolve().parents[1] / ".github" / "workflows" / "ci.yml"
+        self.assertTrue(workflow_path.exists())
+        content = workflow_path.read_text(encoding="utf-8")
+        self.assertIn("python -m unittest", content)
+        self.assertIn("python -m specomega risk", content)
 
 
 if __name__ == "__main__":

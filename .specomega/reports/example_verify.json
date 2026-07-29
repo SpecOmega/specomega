@@ -1,0 +1,19 @@
+{
+  "results": [
+    {
+      "tag": "tool_call_sequence(risk_check→pay)",
+      "passed": true,
+      "failures": [],
+      "evidence": {
+        "expected": [
+          "risk_check",
+          "pay"
+        ],
+        "actual": [
+          "risk_check",
+          "pay"
+        ]
+      }
+    }
+  ]
+}

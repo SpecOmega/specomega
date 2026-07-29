@@ -1,0 +1,47 @@
+{
+  "risk_level": "ok",
+  "findings": [],
+  "recommendations": [],
+  "trace_summary": {
+    "tool_calls": [
+      "risk_check",
+      "pay"
+    ],
+    "risk_level": "safe",
+    "state": null,
+    "repo": null,
+    "action": null
+  },
+  "llm_summary": {
+    "provider": "deepseek",
+    "summary": "风险分析：请优先检查工具调用顺序、状态流转与权限边界。",
+    "entities": [
+      {
+        "name": "risk_check",
+        "type": "tool"
+      },
+      {
+        "name": "pay",
+        "type": "tool"
+      },
+      {
+        "name": "unknown",
+        "type": "state"
+      }
+    ],
+    "relationships": [
+      {
+        "from": "risk_check",
+        "to": "pay",
+        "type": "depends_on"
+      },
+      {
+        "from": "unknown",
+        "to": "pay",
+        "type": "influences"
+      }
+    ],
+    "remote": false
+  },
+  "report_markdown": "# Agent Risk Report\n\n- Risk Level: **ok**\n\n## LLM Summary\n风险分析：请优先检查工具调用顺序、状态流转与权限边界。"
+}

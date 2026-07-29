@@ -1,6 +1,16 @@
 # SpecOmega
 
+[![CI](https://github.com/cloudsoa/specomega/actions/workflows/ci.yml/badge.svg)](https://github.com/cloudsoa/specomega/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 SpecOmega 是一个面向“规范 - 执行 - 验证”闭环的轻量级工程中枢。它不替代 Spec Kit、OpenSpec 或 Superpowers 的主流程，而是为它们提供一个统一的验证层：把规范中的可验证约束转成机器可执行的检查结果，并把多 Agent 协作中的交接规则变成可审计、可执行、可扩展的工程契约。
+
+## 核心能力
+
+- 规范片段验证：把 `@specomega:` 标记的规则变成可执行检查
+- Agent 运行追踪分析：检查工具调用顺序、状态流转与风险前置步骤
+- 多 Agent 协作契约：用 `@agent` 和 `@handoff` 约束角色与交接关系
+- 报告输出：支持 JSON / Markdown / SARIF / HTML 输出，适配 CI 与审计
 
 ## 项目定位
 
@@ -43,11 +53,34 @@ SpecOmega 的核心价值在于弥合“规范定义”与“代码执行”之�
 
 ## 文档索引
 
+### 项目元信息
+- [docs/README.en.md](docs/README.en.md)：英文项目介绍
+- [docs/marketing-summary.en.md](docs/marketing-summary.en.md)：英文宣传摘要
+- [LICENSE](LICENSE)：开源许可证
+- [CONTRIBUTING.md](CONTRIBUTING.md)：贡献说明
+
+### 中文文档
 - [docs/quickstart.md](docs/quickstart.md)：快速上手指南
 - [docs/architecture.md](docs/architecture.md)：架构与职责说明
 - [docs/user-guide.md](docs/user-guide.md)：使用手册
 - [docs/sdd-agent-contract.md](docs/sdd-agent-contract.md)：SDD 与多 Agent 协作契约
 - [docs/example-agent-runtime.md](docs/example-agent-runtime.md)：Agent 示例落地说明
+- [docs/ai-risk-analysis.md](docs/ai-risk-analysis.md)：AI 风险分析与优化建议
+- [docs/release-notes.md](docs/release-notes.md)：发布说明
+- [docs/project-overview.md](docs/project-overview.md)：项目定位说明
+- [docs/llm-mode-configuration.md](docs/llm-mode-configuration.md)：大模型/工程模式配置说明
+- [CHANGELOG.md](CHANGELOG.md)：版本变更记录
+
+### English Docs
+- [docs/quickstart.en.md](docs/quickstart.en.md)：Quickstart guide
+- [docs/architecture.en.md](docs/architecture.en.md)：Architecture overview
+- [docs/user-guide.en.md](docs/user-guide.en.md)：User guide
+- [docs/sdd-agent-contract.en.md](docs/sdd-agent-contract.en.md)：SDD and multi-agent contract
+- [docs/example-agent-runtime.en.md](docs/example-agent-runtime.en.md)：Agent runtime example guide
+- [docs/ai-risk-analysis.en.md](docs/ai-risk-analysis.en.md)：AI risk analysis guide
+- [docs/release-notes.en.md](docs/release-notes.en.md)：Release notes
+- [docs/project-overview.en.md](docs/project-overview.en.md)：Project overview
+- [docs/llm-mode-configuration.en.md](docs/llm-mode-configuration.en.md)：LLM / engineering mode configuration
 
 ## 快速使用
 
@@ -82,6 +115,36 @@ python -m specomega analyze --path .specify/specs/user_management.spec openspec/
 
 ```bash
 python -m specomega plan --path .specomega/agents.md
+```
+
+执行 AI 风险分析：
+
+```bash
+python -m specomega risk --spec examples/agent_runtime/spec.md --trace examples/agent_runtime/agent_trace.json --output-dir .specomega/reports
+```
+
+若要按风险等级控制是否启用 LLM，可在 [.specomega/llm_config.json](.specomega/llm_config.json) 中加入：
+
+```json
+{
+  "mode": "llm",
+  "enable_llm": true,
+  "api_key": "your-api-key",
+  "llm_threshold": "warning"
+}
+```
+
+执行后会生成风险报告文件：
+
+- `.specomega/reports/risk_report.json`
+- `.specomega/reports/risk_report.md`
+- `.specomega/reports/risk_report.sarif`（`--format sarif`）
+- `.specomega/reports/risk_report.html`（`--format html`）
+
+若在 CI 中希望在发现告警时失败构建，可使用：
+
+```bash
+python -m specomega risk --spec examples/agent_runtime/spec.md --trace examples/agent_runtime/agent_trace.json --output-dir .specomega/reports --format sarif --strict
 ```
 
 ## 设计定位

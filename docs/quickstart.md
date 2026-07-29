@@ -71,10 +71,26 @@ python -m specomega plan --path .specomega/agents.md
 
 该命令会生成一个包含角色与交接约束的工作流计划，帮助你验证多 Agent 协作是否具备基本合法结构。
 
-## 7. 结果文件
+## 7. 风险分析与报告输出
 
-验证结果会写入：
+```bash
+python -m specomega risk --spec examples/agent_runtime/spec.md --trace examples/agent_runtime/agent_trace.json --output-dir .specomega/reports --format markdown
+```
+
+这条命令会生成 Markdown、JSON、SARIF 和 HTML 等不同格式的风险报告，便于接入审计、人工 review 或 CI。
+
+若希望在出现风险时让流程失败，可使用：
+
+```bash
+python -m specomega risk --spec examples/agent_runtime/spec.md --trace examples/agent_runtime/agent_trace.json --output-dir .specomega/reports --format sarif --strict
+```
+
+## 8. 结果文件
+
+验证与风险分析结果会写入：
 
 - [.specomega/reports/latest.json](../.specomega/reports/latest.json)
+- [.specomega/reports/risk_report.json](../.specomega/reports/risk_report.json)
+- [.specomega/reports/risk_report.md](../.specomega/reports/risk_report.md)
 
-这使得验证结果可用于 CI、审计、人工 Review 或后续集成。
+这使得结果可用于 CI、审计、人工 Review 或后续集成。

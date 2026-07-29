@@ -1,0 +1,8 @@
+graph TD
+    A[Spec Fragment] --> B[Verification Engine]
+    B --> C[Contract Verifier]
+    B --> D[Trace Verifier]
+    B --> E[Security Verifier]
+    B --> F[Tool Call Verifier]
+    B --> G[Risk Analyzer]
+    G --> H[Markdown / JSON / SARIF / HTML Report]

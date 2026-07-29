@@ -51,7 +51,24 @@ python -m specomega analyze --path .specify/specs/user_management.spec openspec/
 python -m specomega plan --path .specomega/agents.md
 ```
 
-## 5. 结果输出
+## 5. 风险分析与报告输出
+
+除了规范验证，SpecOmega 还支持面向 Agent 场景的风险分析与报告生成：
+
+```bash
+python -m specomega risk --spec examples/agent_runtime/spec.md --trace examples/agent_runtime/agent_trace.json --output-dir .specomega/reports
+```
+
+执行后会生成：
+
+- `.specomega/reports/risk_report.json`
+- `.specomega/reports/risk_report.md`
+- `.specomega/reports/risk_report.sarif`（当使用 `--format sarif`）
+- `.specomega/reports/risk_report.html`（当使用 `--format html`）
+
+若配合 `--strict` 使用，且发现风险项时会以状态码 `1` 退出，适合接入 CI。
+
+## 6. 结果输出
 
 验证报告会写入：
 
