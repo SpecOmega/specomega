@@ -1,0 +1,10 @@
+verifiers:
+  - ast_verifier
+  - contract_verifier
+  - trace_verifier
+
+strategy:
+  default_strength: high
+  critical_tags:
+    - contract_check
+    - trace_check
