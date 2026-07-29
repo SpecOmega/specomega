@@ -1,0 +1,17 @@
+{
+  "command": "bootstrap",
+  "results": [
+    {
+      "command": "/home/codespace/.python/current/bin/python -m unittest discover -s tests -v",
+      "status": "ok"
+    },
+    {
+      "command": "/home/codespace/.python/current/bin/python examples/agent_runtime/run_example.py",
+      "status": "ok"
+    },
+    {
+      "command": "/home/codespace/.python/current/bin/python -m specomega verify --path .",
+      "status": "ok"
+    }
+  ]
+}

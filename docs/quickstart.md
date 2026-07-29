@@ -21,6 +21,19 @@ python -m unittest discover -s tests -v
 
 ### 3.1 Agent 工具调用合规性验证
 
+如果你是首次使用，建议按下面顺序执行：
+
+```bash
+python -m unittest discover -s tests -v
+python examples/agent_runtime/run_example.py
+python -m specomega verify --path .
+```
+
+这三步分别对应：
+- 先确认当前实现可运行
+- 再跑最小 Agent 示例并生成示例报告
+- 最后验证整个项目里的规范标记是否通过
+
 当前仓库内置了一个最小可运行的 Agent 示例：
 
 ```bash

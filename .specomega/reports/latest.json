@@ -1,0 +1,43 @@
+{
+  "framework": "auto",
+  "results": [
+    {
+      "tag": "contract_check(page_zero=400)",
+      "passed": true,
+      "failures": [],
+      "evidence": {
+        "page_zero": "400"
+      }
+    },
+    {
+      "tag": "contract_check(page_zero=400)",
+      "passed": true,
+      "failures": [],
+      "evidence": {
+        "page_zero": "400"
+      }
+    },
+    {
+      "tag": "tool_call_sequence(risk_check→pay)",
+      "passed": false,
+      "failures": [
+        "缺少 Agent 运行日志中的工具调用记录"
+      ],
+      "evidence": null
+    },
+    {
+      "tag": "trace_check(ReviewGate)",
+      "passed": true,
+      "failures": [],
+      "evidence": {
+        "required": [
+          "ReviewGate"
+        ],
+        "actual": [
+          "ReviewGate",
+          "Finalize"
+        ]
+      }
+    }
+  ]
+}

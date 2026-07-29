@@ -24,12 +24,18 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "example_verify.json").write_text(json.dumps(verify_report, indent=2, ensure_ascii=False), encoding="utf-8")
     (output_dir / "example_risk.json").write_text(json.dumps(risk_report, indent=2, ensure_ascii=False), encoding="utf-8")
+    (output_dir / "example_risk.md").write_text(risk_report.get("report_markdown", ""), encoding="utf-8")
 
+    print("SpecOmega quickstart example")
+    print("=" * 28)
     print("Verification result:")
     print(json.dumps(verify_report, indent=2, ensure_ascii=False))
     print("\nRisk analysis result:")
     print(json.dumps(risk_report, indent=2, ensure_ascii=False))
     print(f"\nReports written to {output_dir}")
+    print("\nNext steps:")
+    print("  python -m specomega verify --path .")
+    print("  python -m specomega risk --spec examples/agent_runtime/spec.md --trace examples/agent_runtime/agent_trace.json --output-dir .specomega/reports --format markdown")
 
 
 if __name__ == "__main__":

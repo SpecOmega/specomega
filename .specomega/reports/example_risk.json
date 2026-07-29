@@ -14,7 +14,7 @@
   },
   "llm_summary": {
     "provider": "deepseek",
-    "summary": "风险分析：请优先检查工具调用顺序、状态流转与权限边界。",
+    "summary": "风险分析：当前运行在工程模式（内网服务器模式），已关闭大模型增强，优先检查工具调用顺序、状态流转与权限边界。",
     "entities": [
       {
         "name": "risk_check",
@@ -41,7 +41,11 @@
         "type": "influences"
       }
     ],
-    "remote": false
+    "remote": false,
+    "mode": "engine",
+    "status": "engine_fallback",
+    "error": null
   },
-  "report_markdown": "# Agent Risk Report\n\n- Risk Level: **ok**\n\n## LLM Summary\n风险分析：请优先检查工具调用顺序、状态流转与权限边界。"
+  "llm_threshold": "warning",
+  "report_markdown": "# Agent Risk Report\n\n- Risk Level: **ok**\n\n## LLM Summary\n风险分析：当前运行在工程模式（内网服务器模式），已关闭大模型增强，优先检查工具调用顺序、状态流转与权限边界。"
 }

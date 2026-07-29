@@ -3,15 +3,13 @@ import re
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from pathlib import Path
-
 from .llm_adapter import LLMAdapter
 
 
 class RiskAnalyzer:
     """A lightweight analyzer for Agent risk and dependency relationships."""
 
-    def analyze(self, spec: str, trace: Optional[Dict] = None, use_remote: bool = False) -> Dict:
+    def analyze(self, spec: str, trace: Optional[Dict] = None, use_remote: bool = False, config_path: Optional[Path] = None, llm_threshold: Optional[str] = None) -> Dict:
         trace = trace or {}
         findings: List[Dict] = []
         recommendations: List[str] = []
@@ -33,7 +31,11 @@ class RiskAnalyzer:
         if findings:
             risk_level = "warning"
 
-        llm_adapter = LLMAdapter(provider="deepseek", config_path=Path(".specomega/llm_config.json"))
+        config_path = config_path or Path(".specomega/llm_config.json")
+        llm_adapter = LLMAdapter(provider="deepseek", config_path=config_path)
+        if llm_threshold:
+            llm_adapter.runtime_config.llm_threshold = llm_threshold
+            llm_adapter.llm_threshold = llm_threshold
         llm_output = llm_adapter.summarize_risk(spec=spec, trace=trace, findings=findings)
 
         return {
@@ -48,6 +50,7 @@ class RiskAnalyzer:
                 "action": trace.get("action"),
             },
             "llm_summary": llm_output,
+            "llm_threshold": llm_adapter.llm_threshold,
             "report_markdown": self._build_markdown_report(risk_level, findings, recommendations, llm_output),
         }
 
@@ -68,5 +71,5 @@ class RiskAnalyzer:
         return "\n".join(lines)
 
 
-def analyze_agent_risks(spec: str, trace: Optional[Dict] = None, use_remote: bool = False) -> Dict:
-    return RiskAnalyzer().analyze(spec, trace, use_remote=use_remote)
+def analyze_agent_risks(spec: str, trace: Optional[Dict] = None, use_remote: bool = False, config_path: Optional[Path] = None, llm_threshold: Optional[str] = None) -> Dict:
+    return RiskAnalyzer().analyze(spec, trace, use_remote=use_remote, config_path=config_path, llm_threshold=llm_threshold)

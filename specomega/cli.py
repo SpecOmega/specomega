@@ -1,6 +1,8 @@
 import argparse
 import json
 import re
+import subprocess
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -57,6 +59,10 @@ def main() -> None:
     analyze_risk.add_argument("--output-dir", default=".specomega/reports", help="Directory for markdown/json report output")
     analyze_risk.add_argument("--format", choices=["json", "markdown", "sarif", "html"], default="json", help="Report format to emit")
     analyze_risk.add_argument("--strict", action="store_true", help="Exit with status 1 when findings are present")
+    analyze_risk.add_argument("--llm-threshold", default=None, help="Override the minimum risk level that can trigger remote LLM usage")
+    analyze_risk.add_argument("--config", default=".specomega/llm_config.json", help="Path to runtime config file")
+
+    bootstrap = subparsers.add_parser("bootstrap", help="Run the default smoke-test workflow")
 
     args = parser.parse_args()
     if args.command == "verify":
@@ -83,7 +89,13 @@ def main() -> None:
             trace_payload = json.loads(trace_text)
         else:
             trace_payload = {}
-        report = analyze_agent_risks(spec_text, trace_payload, use_remote=False)
+        report = analyze_agent_risks(
+            spec_text,
+            trace_payload,
+            use_remote=False,
+            config_path=Path(args.config),
+            llm_threshold=args.llm_threshold,
+        )
         output_dir = Path(args.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         (output_dir / "risk_report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -102,6 +114,36 @@ def main() -> None:
             print(export_sarif(report))
         else:
             print(export_html(report))
+    elif args.command == "bootstrap":
+        commands = [
+            [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],
+            [sys.executable, "examples/agent_runtime/run_example.py"],
+            [sys.executable, "-m", "specomega", "verify", "--path", "."],
+        ]
+        results = []
+        for command in commands:
+            print(f"> {' '.join(command)}")
+            completed = subprocess.run(command, check=False)
+            results.append((command, completed.returncode))
+            if completed.returncode != 0:
+                print(f"[FAIL] {' '.join(command)}")
+                raise SystemExit(completed.returncode)
+            print(f"[OK] {' '.join(command)}")
+        summary = {
+            "command": "bootstrap",
+            "results": [
+                {"command": " ".join(command), "status": "ok" if returncode == 0 else "fail"}
+                for command, returncode in results
+            ],
+        }
+        output_dir = Path(".specomega/reports")
+        output_dir.mkdir(parents=True, exist_ok=True)
+        (output_dir / "bootstrap_report.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
+        print("\nBootstrap summary:")
+        for command, returncode in results:
+            status = "OK" if returncode == 0 else "FAIL"
+            print(f"- {status}: {' '.join(command)}")
+        print(f"\nBootstrap report written to {output_dir / 'bootstrap_report.json'}")
 
 
 def verify_path(path: str, framework: str = "auto") -> dict:

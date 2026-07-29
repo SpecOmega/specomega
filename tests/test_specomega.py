@@ -194,6 +194,32 @@ class SpecOmegaEngineTests(unittest.TestCase):
             self.assertTrue(config.should_use_llm("warning"))
             self.assertFalse(config.should_use_llm("ok"))
 
+    def test_risk_analyzer_respects_explicit_llm_threshold(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / "llm_config.json"
+            config_path.write_text(json.dumps({"mode": "llm", "enable_llm": True, "api_key": "x", "llm_threshold": "warning"}), encoding="utf-8")
+            report = analyze_agent_risks(
+                "Must call risk_check before pay.",
+                {"risk_level": "ok", "tool_calls": ["pay"]},
+                use_remote=False,
+                config_path=config_path,
+                llm_threshold="critical",
+            )
+            self.assertIn("工程规则", report["llm_summary"]["summary"])
+
+    def test_bootstrap_command_runs_smoke_sequence(self):
+        from specomega.cli import main
+
+        with patch("specomega.cli.subprocess.run") as run_mock:
+            run_mock.return_value = type("Completed", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+            with patch.object(sys, "argv", ["specomega", "bootstrap"]):
+                main()
+
+        commands = [call.args[0] for call in run_mock.call_args_list]
+        self.assertTrue(any(cmd[:3] == [sys.executable, "-m", "unittest"] for cmd in commands))
+        self.assertTrue(any(cmd[-1] == "examples/agent_runtime/run_example.py" for cmd in commands))
+        self.assertTrue(any(cmd[:3] == [sys.executable, "-m", "specomega"] and cmd[3:5] == ["verify", "--path"] for cmd in commands))
+
     def test_cli_can_export_sarif_and_fail_on_warning(self):
         from specomega.cli import main
 

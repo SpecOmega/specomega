@@ -90,7 +90,15 @@ SpecOmega 的核心价值在于弥合“规范定义”与“代码执行”之�
 python examples/agent_runtime/run_example.py
 ```
 
-这条示例会读取 [examples/agent_runtime/spec.md](examples/agent_runtime/spec.md) 和 [examples/agent_runtime/agent_trace.json](examples/agent_runtime/agent_trace.json)，验证支付工具调用序列是否符合规范。
+这条示例会读取 [examples/agent_runtime/spec.md](examples/agent_runtime/spec.md) 和 [examples/agent_runtime/agent_trace.json](examples/agent_runtime/agent_trace.json)，验证支付工具调用序列是否符合规范，并生成示例报告到 [.specomega/reports](.specomega/reports)。
+
+首次运行时建议按顺序执行：
+
+```bash
+python -m unittest discover -s tests -v
+python examples/agent_runtime/run_example.py
+python -m specomega verify --path .
+```
 
 
 运行测试：
