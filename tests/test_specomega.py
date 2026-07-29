@@ -528,9 +528,27 @@ class SpecOmegaEngineTests(unittest.TestCase):
 
         result = orchestrator.execute(spec)
         self.assertEqual("ready", result["workflow"][0]["status"])
-        self.assertEqual("waiting", result["workflow"][1]["status"])
+        self.assertEqual("ready", result["workflow"][1]["status"])
         self.assertTrue(any(event["type"] == "retry_scheduled" for event in result["events"]))
         self.assertTrue(any(event["type"] == "fallback_proposed" for event in result["events"]))
+
+    def test_multi_agent_orchestrator_tracks_lifecycle_and_parallel_aggregation(self):
+        orchestrator = MultiAgentOrchestrator()
+        spec = """
+        ## Goal
+        @agent: planner
+        @agent: implementer
+        @agent: reviewer
+        @join: reviewer
+        @handoff: planner->implementer
+        @handoff: implementer->reviewer
+        """
+        result = orchestrator.execute(spec)
+        self.assertEqual("pending", result["workflow"][0]["lifecycle"])
+        self.assertEqual("pending", result["workflow"][1]["lifecycle"])
+        self.assertEqual("pending", result["workflow"][2]["lifecycle"])
+        self.assertEqual(["reviewer"], result["merge_points"])
+        self.assertTrue(result["execution_log"])
 
     def test_risk_analyzer_reports_security_and_state_risks(self):
         analyzer = RiskAnalyzer()

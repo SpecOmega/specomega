@@ -12,6 +12,9 @@ class MultiAgentOrchestrator:
         constraints = self._extract_items(spec, r"@constraint:\s*(.+)")
         validations = self._extract_items(spec, r"@validation:\s*(.+)")
         deliverables = self._extract_items(spec, r"@deliverable:\s*([a-zA-Z0-9_.-]+)")
+        retry_policies = self._extract_retry_policies(spec)
+        fallbacks = self._extract_fallbacks(spec)
+        merge_points = self._extract_merge_points(spec)
         workflow = []
         for index, role in enumerate(roles):
             phase = self._phase_for_role(role, phases, index)
@@ -24,6 +27,7 @@ class MultiAgentOrchestrator:
                 "entry_conditions": self._default_entry_conditions(role),
                 "exit_conditions": self._default_exit_conditions(role),
                 "dependencies": dependencies,
+                "lifecycle": "pending",
             })
         handoff_contracts = [{"from": src, "to": dst} for src, dst in handoffs]
         return {
@@ -33,6 +37,9 @@ class MultiAgentOrchestrator:
             "constraints": constraints,
             "validations": validations,
             "deliverables": deliverables,
+            "retry_policies": retry_policies,
+            "fallbacks": fallbacks,
+            "merge_points": merge_points,
             "summary": self._summarize_workflow(workflow, handoff_contracts),
         }
 
@@ -44,9 +51,21 @@ class MultiAgentOrchestrator:
         dependency_violations = self._detect_dependency_violations(plan)
         readiness = self._evaluate_readiness(plan)
         workflow = []
-        for step in plan["workflow"]:
-            state = "ready" if not dependency_violations else "blocked"
-            workflow.append({**step, "status": state})
+        events = []
+        execution_log = []
+        for index, step in enumerate(plan["workflow"]):
+            if dependency_violations:
+                state = "blocked"
+                lifecycle = "blocked"
+            else:
+                state = "ready"
+                lifecycle = "pending"
+                if index > 0:
+                    events.append({"type": "retry_scheduled", "role": step["role"], "attempt": 1})
+            if any(fallback["role"] == step["role"] for fallback in plan.get("fallbacks", [])):
+                events.append({"type": "fallback_proposed", "role": step["role"]})
+            workflow.append({**step, "status": state, "lifecycle": lifecycle})
+            execution_log.append({"role": step["role"], "state": state, "lifecycle": lifecycle})
         return {
             "valid": not missing_roles and not dependency_violations,
             "workflow": workflow,
@@ -54,6 +73,9 @@ class MultiAgentOrchestrator:
             "missing_roles": missing_roles,
             "dependency_violations": dependency_violations,
             "readiness": readiness,
+            "events": events,
+            "merge_points": plan.get("merge_points", []),
+            "execution_log": execution_log,
             "summary": plan.get("summary", {}),
         }
 
@@ -69,6 +91,24 @@ class MultiAgentOrchestrator:
 
     def _extract_items(self, spec: str, pattern: str) -> List[str]:
         return [match.strip() for match in re.findall(pattern, spec) if match and match.strip()]
+
+    def _extract_retry_policies(self, spec: str) -> List[Dict]:
+        policies = []
+        for match in re.finditer(r"@retry:\s*([a-zA-Z0-9_-]+):(\d+)", spec):
+            policies.append({"role": match.group(1), "max_attempts": int(match.group(2))})
+        return policies
+
+    def _extract_fallbacks(self, spec: str) -> List[Dict]:
+        fallbacks = []
+        for match in re.finditer(r"@fallback:\s*([a-zA-Z0-9_-]+)->([a-zA-Z0-9_-]+)", spec):
+            fallbacks.append({"role": match.group(1), "fallback_role": match.group(2)})
+        return fallbacks
+
+    def _extract_merge_points(self, spec: str) -> List[str]:
+        merge_points = []
+        for match in re.finditer(r"@join:\s*([a-zA-Z0-9_-]+)", spec):
+            merge_points.append(match.group(1))
+        return merge_points
 
     def _derive_dependencies(self, role: str, handoffs: List[tuple]) -> List[str]:
         dependencies = []
