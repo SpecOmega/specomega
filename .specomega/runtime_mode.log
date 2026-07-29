@@ -1187,3 +1187,17 @@ remote_disabled mode=llm enable_llm=True threshold=critical risk_level=ok
 remote_disabled mode=llm enable_llm=True threshold=critical risk_level=ok
 remote_disabled mode=engine enable_llm=False threshold=warning risk_level=safe
 remote_disabled mode=engine enable_llm=False threshold=warning risk_level=safe
+remote_disabled mode=engine enable_llm=False threshold=warning risk_level=safe
+remote_disabled mode=engine enable_llm=False threshold=warning risk_level=safe
+remote_disabled mode=engine enable_llm=False threshold=warning risk_level=safe
+remote_disabled mode=engine enable_llm=False threshold=warning risk_level=safe
+remote_disabled mode=engine enable_llm=False threshold=warning risk_level=medium
+remote_disabled mode=engine enable_llm=False threshold=warning risk_level=medium
+engine_fallback mode=engine enable_llm=False threshold=warning risk_level=medium
+engine_fallback mode=engine enable_llm=False threshold=warning risk_level=medium
+remote_disabled mode=engine enable_llm=False threshold=warning risk_level=medium
+remote_disabled mode=engine enable_llm=False threshold=warning risk_level=medium
+remote_disabled mode=engine enable_llm=False threshold=warning risk_level=safe
+remote_disabled mode=engine enable_llm=False threshold=warning risk_level=safe
+remote_disabled mode=llm enable_llm=True threshold=critical risk_level=ok
+remote_disabled mode=llm enable_llm=True threshold=critical risk_level=ok

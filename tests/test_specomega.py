@@ -734,6 +734,7 @@ class SpecOmegaEngineTests(unittest.TestCase):
         content = workflow_path.read_text(encoding="utf-8")
         self.assertIn("python -m unittest", content)
         self.assertIn("python -m specomega risk", content)
+        self.assertNotIn("--strict", content)
 
 
 if __name__ == "__main__":
