@@ -15,7 +15,7 @@ cd /workspaces/specomega
 python -m unittest discover -s tests -v
 ```
 
-这一步会确认当前实现已经可正常运行。
+这一步会确认当前实现已经可正常运行，并为后续的验证、规划与审计任务建立基线。
 
 ## 3. 运行第一个示例
 
@@ -82,7 +82,7 @@ python -m specomega analyze --path .specify/specs/user_management.spec openspec/
 python -m specomega plan --path .specomega/agents.md
 ```
 
-该命令会生成一个包含角色与交接约束的工作流计划，帮助你验证多 Agent 协作是否具备基本合法结构。
+该命令会生成一个包含角色、阶段、交接约束、重试/回退策略与汇聚点的工作流计划，帮助你验证多 Agent 协作是否具备基本合法结构。
 
 ## 7. 风险分析与报告输出
 
@@ -90,7 +90,7 @@ python -m specomega plan --path .specomega/agents.md
 python -m specomega risk --spec examples/agent_runtime/spec.md --trace examples/agent_runtime/agent_trace.json --output-dir .specomega/reports --format markdown
 ```
 
-这条命令会生成 Markdown、JSON、SARIF 和 HTML 等不同格式的风险报告，便于接入审计、人工 review 或 CI。
+这条命令会生成 Markdown、JSON、SARIF 和 HTML 等不同格式的风险报告，便于接入审计、人工 review 或 CI；在 LLM 配置不可用时，会自动回退到本地规则与工程模式摘要。
 
 若希望在出现风险时让流程失败，可使用：
 

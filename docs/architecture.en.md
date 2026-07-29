@@ -1,6 +1,6 @@
 # Architecture Overview
 
-SpecOmega is a lightweight verification and governance layer for specification-driven engineering workflows. It connects specification fragments, execution evidence, agent coordination rules, and generative-code signals into a single audit-friendly pipeline.
+SpecOmega is an engineering-oriented verification and governance layer for specification-driven workflows. It connects specification fragments, execution evidence, agent coordination rules, and generative-code signals into a single audit-friendly pipeline that can run in CI and review environments.
 
 ## Core Components
 
@@ -9,7 +9,7 @@ SpecOmega is a lightweight verification and governance layer for specification-d
 - Vibecode analyzer: detects keyword signals, source types, confidence, and evidence for AI-assisted or templated content.
 - Multi-agent orchestrator: parses agent and handoff rules and validates workflow structure.
 - Risk analyzer: inspects spec and trace data and emits structured recommendations.
-- CLI: offers entry points for verification, analysis, planning, risk reporting, and Vibecode governance output.
+- CLI: offers entry points for verification, analysis, planning, risk reporting, and Vibecode governance output, with optional LLM-backed summaries and local fallback logic.
 
 ## Typical Flow
 

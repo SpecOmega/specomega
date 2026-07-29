@@ -375,7 +375,7 @@ def export_html(report: dict) -> str:
     return body
 
 
-def main() -> None:
+def main() -> Optional[dict]:
     parser = argparse.ArgumentParser(prog="specomega")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -423,7 +423,9 @@ def main() -> None:
         else:
             spec = ""
         orchestrator = MultiAgentOrchestrator()
-        print(json.dumps(orchestrator.execute(spec), indent=2, ensure_ascii=False))
+        result = orchestrator.execute(spec)
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        return result
     elif args.command == "risk":
         spec_text = args.spec
         trace_text = args.trace
@@ -523,6 +525,7 @@ def main() -> None:
             status = "OK" if returncode == 0 else "FAIL"
             print(f"- {status}: {' '.join(command)}")
         print(f"\nBootstrap report written to {output_dir / 'bootstrap_report.json'}")
+        return summary
 
 
 def verify_path(path: str, framework: str = "auto") -> dict:

@@ -7,7 +7,7 @@ from ..config import RuntimeConfig
 
 
 class LLMAdapter:
-    """A lightweight adapter for integrating LLM-based risk summarization."""
+    """A thin, configurable adapter for local and remote risk summarization in CI and review flows."""
 
     def __init__(self, provider: str = "deepseek", api_key: Optional[str] = None, base_url: Optional[str] = None, config_path: Optional[Path] = None, use_remote: bool = True) -> None:
         self.provider = provider
@@ -35,6 +35,7 @@ class LLMAdapter:
         return payload.get(key)
 
     def summarize_risk(self, spec: str, trace: Optional[Dict] = None, findings: Optional[List[Dict]] = None) -> Dict:
+        """Produce a structured risk summary that can fall back to local rules when LLM access is unavailable."""
         trace = trace or {}
         findings = findings or []
         risk_level = trace.get("risk_level") or ("warning" if findings else "ok")
@@ -110,10 +111,12 @@ class LLMAdapter:
         }
 
     def _append_log(self, message: str) -> None:
+        """Persist a best-effort execution trace for debugging and audit review."""
         try:
             self.log_path.write_text(self.log_path.read_text(encoding="utf-8") + f"{message}\n" if self.log_path.exists() else f"{message}\n", encoding="utf-8")
         except Exception:
-            pass
+            # Logging should never interrupt the main analysis flow.
+            return
 
     def _extract_entities(self, spec: str, trace: Dict) -> List[Dict]:
         entities = []

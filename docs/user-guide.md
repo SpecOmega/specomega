@@ -53,7 +53,7 @@ python -m specomega plan --path .specomega/agents.md
 
 ## 5. 风险分析与报告输出
 
-除了规范验证，SpecOmega 还支持面向 Agent 场景的风险分析与报告生成：
+除了规范验证，SpecOmega 还支持面向 Agent 场景的风险分析与报告生成，其中会同时检查工具调用顺序、状态风险、权限边界以及 Vibecode 线索：
 
 ```bash
 python -m specomega risk --spec examples/agent_runtime/spec.md --trace examples/agent_runtime/agent_trace.json --output-dir .specomega/reports

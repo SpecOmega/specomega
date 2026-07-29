@@ -3,7 +3,7 @@
 [![CI](https://github.com/cloudsoa/specomega/actions/workflows/ci.yml/badge.svg)](https://github.com/cloudsoa/specomega/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-SpecOmega 是一个面向“规范 - 执行 - 验证 - 治理”闭环的轻量级工程中枢。它不替代 Spec Kit、OpenSpec 或 Superpowers 的主流程，而是为它们提供一个统一的验证与审计层：把规范中的可验证约束转成机器可执行的检查结果，并把多 Agent 协作中的交接规则与生成式代码风险变成可审计、可执行、可扩展的工程契约。
+SpecOmega 是一个面向“规范 - 执行 - 验证 - 治理”闭环的工程中枢。它不替代 Spec Kit、OpenSpec 或 Superpowers 的主流程，而是为它们提供一个统一的验证与审计层：把规范中的可验证约束转成机器可执行的检查结果，并把多 Agent 协作中的交接规则与生成式代码风险变成可审计、可执行、可扩展的工程契约。
 
 ## 核心能力
 
@@ -21,7 +21,7 @@ SpecOmega 的核心价值在于弥合“规范定义”与“代码执行”之�
 
 ## 当前能力
 
-当前仓库已经包含一个可运行的最小实现，提供：
+当前仓库已经包含一个可运行的工程化实现，提供：
 
 - 统一验证引擎
 - 基于 `@specomega:` 标记的规范验证
@@ -33,6 +33,7 @@ SpecOmega 的核心价值在于弥合“规范定义”与“代码执行”之�
 - Vibecode 分析器：自动识别关键词、来源类型、生成行为、痕迹、意图/目标、动态规则、证据分解与来源线索
 - 政策驱动的治理门禁：可基于配置决定是否阻断流程
 - CLI 入口与多格式报告输出：JSON / Markdown / SARIF / HTML / CSV 均可携带证据分解与 Provenance 信息
+- 运行时可选的 LLM 风险摘要与本地规则兜底，适配 CI、审计与人工 review 流程
 
 ## 适用场景
 

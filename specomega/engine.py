@@ -12,6 +12,8 @@ from .verifiers.vibecode_verifier import VibecodeVerifier
 
 
 class VerificationEngine:
+    """Dispatch verification tasks across the configured verifier registry and persist structured reports."""
+
     def __init__(self, verifier_classes=None) -> None:
         self.verifiers = []
         for verifier_cls in verifier_classes or [AstVerifier, ContractVerifier, SecurityVerifier, ToolCallVerifier, TraceVerifier, VibecodeVerifier]:

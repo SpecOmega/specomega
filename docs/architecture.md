@@ -2,7 +2,7 @@
 
 ## 目标
 
-SpecOmega 不是一个独立的开发工作流，而是一个面向规范、执行与治理一致性验证的中枢层。它负责把规范中的可验证约束转成机器可执行的检查结果，服务于 Spec Kit、OpenSpec、Superpowers、多 Agent 协作以及生成式代码治理场景。
+SpecOmega 不是一个独立的开发工作流，而是一个面向规范、执行与治理一致性验证的中枢层。它负责把规范中的可验证约束转成机器可执行的检查结果，服务于 Spec Kit、OpenSpec、Superpowers、多 Agent 协作以及生成式代码治理场景，并在 CI 与审计流程中提供可追踪的证据输出。
 
 ## 核心职责
 
@@ -39,7 +39,7 @@ SpecOmega 不是一个独立的开发工作流，而是一个面向规范、执�
 - `specomega/agents/orchestrator.py`
   - 多 Agent 编排器，用于解析工作流角色和交接规则
 - `specomega/cli.py`
-  - 命令行入口，暴露验证、冲突分析、工作流规划与 Vibecode 审计能力
+  - 命令行入口，暴露验证、冲突分析、工作流规划、风险分析与 Vibecode 审计能力
 
 ## 输出产物
 

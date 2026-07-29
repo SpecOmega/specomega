@@ -550,6 +550,20 @@ class SpecOmegaEngineTests(unittest.TestCase):
         self.assertEqual(["reviewer"], result["merge_points"])
         self.assertTrue(result["execution_log"])
 
+    def test_multi_agent_orchestrator_runs_runtime_state_transitions(self):
+        orchestrator = MultiAgentOrchestrator()
+        spec = """
+        ## Goal
+        @agent: planner
+        @agent: implementer
+        @handoff: planner->implementer
+        """
+        result = orchestrator.run(spec)
+        self.assertEqual("succeeded", result["workflow"][0]["lifecycle"])
+        self.assertEqual("succeeded", result["workflow"][1]["lifecycle"])
+        self.assertEqual("succeeded", result["state"])
+        self.assertTrue(any(entry["event"] == "completed" for entry in result["execution_log"]))
+
     def test_risk_analyzer_reports_security_and_state_risks(self):
         analyzer = RiskAnalyzer()
         spec = """
@@ -672,6 +686,19 @@ class SpecOmegaEngineTests(unittest.TestCase):
         self.assertTrue(any(cmd[:3] == [sys.executable, "-m", "unittest"] for cmd in commands))
         self.assertTrue(any(cmd[-1] == "examples/agent_runtime/run_example.py" for cmd in commands))
         self.assertTrue(any(cmd[:3] == [sys.executable, "-m", "specomega"] and cmd[3:5] == ["verify", "--path"] for cmd in commands))
+
+    def test_cli_plan_command_returns_structured_plan(self):
+        from specomega.cli import main
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            spec_path = Path(tmpdir) / "workflow.md"
+            spec_path.write_text("@agent: planner\n@agent: implementer\n@handoff: planner->implementer\n", encoding="utf-8")
+            with patch.object(sys, "argv", ["specomega", "plan", "--path", str(spec_path)]):
+                result = main()
+
+            self.assertIsInstance(result, dict)
+            self.assertEqual(["planner", "implementer"], [step["role"] for step in result["workflow"]])
+            self.assertEqual(1, len(result["handoffs"]))
 
     def test_cli_can_export_sarif_and_fail_on_warning(self):
         from specomega.cli import main

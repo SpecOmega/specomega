@@ -8,7 +8,7 @@ from .vibecode import VibecodeAnalyzer
 
 
 class RiskAnalyzer:
-    """A lightweight analyzer for Agent risk and dependency relationships."""
+    """Aggregate agent-risk findings into a structured review report with local and LLM-backed summaries."""
 
     def analyze(self, spec: str, trace: Optional[Dict] = None, use_remote: bool = False, config_path: Optional[Path] = None, llm_threshold: Optional[str] = None) -> Dict:
         trace = trace or {}

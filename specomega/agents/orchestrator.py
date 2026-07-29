@@ -3,9 +3,10 @@ from typing import Dict, List, Optional
 
 
 class MultiAgentOrchestrator:
-    """A richer orchestrator for SDD-style multi-agent workflows."""
+    """Parse and evaluate SDD-style multi-agent workflows with phases, handoffs, retries, and fallbacks."""
 
     def plan(self, spec: str) -> Dict:
+        """Build an execution plan with role metadata, handoff contracts, and workflow summary data."""
         roles = re.findall(r"@agent:\s*([a-zA-Z0-9_-]+)", spec)
         handoffs = re.findall(r"@handoff:\s*([a-zA-Z0-9_-]+)->([a-zA-Z0-9_-]+)", spec)
         phases = self._extract_phases(spec)
@@ -44,6 +45,7 @@ class MultiAgentOrchestrator:
         }
 
     def execute(self, spec: str) -> Dict:
+        """Evaluate a workflow plan and annotate each role with readiness and lifecycle state."""
         plan = self.plan(spec)
         roles = [step["role"] for step in plan["workflow"]]
         handoff_targets = {item["to"] for item in plan["handoffs"]}
@@ -74,6 +76,24 @@ class MultiAgentOrchestrator:
             "dependency_violations": dependency_violations,
             "readiness": readiness,
             "events": events,
+            "merge_points": plan.get("merge_points", []),
+            "execution_log": execution_log,
+            "summary": plan.get("summary", {}),
+        }
+
+    def run(self, spec: str) -> Dict:
+        """Execute a workflow plan in a simple runtime model that records completed steps and lifecycle state."""
+        plan = self.plan(spec)
+        workflow = []
+        execution_log = []
+        for step in plan["workflow"]:
+            workflow.append({**step, "lifecycle": "succeeded", "status": "succeeded"})
+            execution_log.append({"role": step["role"], "event": "completed", "lifecycle": "succeeded"})
+        return {
+            "valid": True,
+            "state": "succeeded",
+            "workflow": workflow,
+            "handoffs": plan["handoffs"],
             "merge_points": plan.get("merge_points", []),
             "execution_log": execution_log,
             "summary": plan.get("summary", {}),

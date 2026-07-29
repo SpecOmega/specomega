@@ -6,7 +6,7 @@ from typing import Dict, List
 
 
 class VibecodeAnalyzer:
-    """Lightweight analyzer for Vibecode-related signals and code origin hints."""
+    """Governance-oriented analyzer for Vibecode signals, code-origin hints, and policy gates."""
 
     def __init__(self) -> None:
         self.keywords = ["vibecode", "vibe", "prompt-driven", "agent workflow", "autonomous coding"]
@@ -115,6 +115,7 @@ class VibecodeAnalyzer:
         ]
 
     def analyze(self, text: str, config_path: Path | None = None, config: Dict | None = None) -> Dict:
+        """Analyze a text fragment and return structured governance evidence for review pipelines."""
         normalized = (text or "").lower()
         matched = [keyword for keyword in self.keywords if keyword in normalized]
         behavior = self._detect_behavior(text)
@@ -197,6 +198,7 @@ class VibecodeAnalyzer:
         }
 
     def scan_paths(self, paths: List[str], config_path: Path | None = None, config: Dict | None = None) -> Dict:
+        """Scan one or more paths and aggregate Vibecode findings into a review-friendly summary."""
         files = []
         config = config if config is not None else self.load_config(config_path)
         profile_name = config.get("profile") if isinstance(config, dict) else None
@@ -726,6 +728,7 @@ class VibecodeAnalyzer:
         return "low", ["keep current review flow"]
 
     def evaluate_policy_gate(self, result: Dict, config: Dict) -> tuple[bool, str]:
+        """Return whether a Vibecode result should block execution according to the configured policy."""
         profile_name = config.get("profile") if isinstance(config, dict) else None
         effective_config = self._get_profile_config(config, profile_name)
         policy = effective_config.get("policy", {}) or {}
