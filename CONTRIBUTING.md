@@ -14,4 +14,8 @@ Contributions are welcome.
 ```bash
 python -m unittest discover -s tests -v
 python examples/agent_runtime/run_example.py
+python -m specomega verify --path .
+python -m specomega plan --path .specomega/agents.md
 ```
+
+When you update workflow semantics, handoff rules, or Vibecode behavior, also update the relevant docs under [docs](docs) and the sample workflow in [.specomega/agents.md](.specomega/agents.md).

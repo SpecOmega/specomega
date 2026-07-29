@@ -3,8 +3,8 @@
 ## 0.1.0 - 2026-07-29
 
 ### Added
-- Added a verification engine with pluggable verifiers.
-- Added CLI commands for verification, conflict analysis, workflow planning, and risk analysis.
-- Added multi-agent orchestration and handoff contract validation.
-- Added AI-assisted risk analysis output and report export.
-- Added CI workflow and example runner for end-to-end validation.
+- Added a verification engine with pluggable verifiers for spec, contract, trace, security, and Vibecode checks.
+- Added CLI commands for verification, conflict analysis, workflow planning, risk analysis, and Vibecode governance.
+- Added multi-agent orchestration with handoff, phase, retry, fallback, and merge-point awareness.
+- Added AI-assisted risk analysis output, local fallback logic, and structured report export.
+- Added CI workflow and example runner for end-to-end validation and governance review.

@@ -2,7 +2,7 @@
 
 ## SpecOmega 0.1.0
 
-SpecOmega 0.1.0 provides a lightweight verification layer for specification-driven engineering workflows. It helps teams validate spec constraints, inspect agent traces, plan multi-agent handoffs, and export structured risk reports for review and CI.
+SpecOmega 0.1.0 provides an engineering-oriented verification layer for specification-driven workflows. It helps teams validate spec constraints, inspect agent traces, plan multi-agent handoffs with phases/retries/fallbacks, and export structured risk reports for review and CI.
 
 ### Highlights
 - Machine-checkable verification of spec fragments

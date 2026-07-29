@@ -18,7 +18,7 @@ python -m specomega analyze --path .specify/specs/user_management.spec openspec/
 
 ## 3. Plan a multi-agent workflow
 
-Create a workflow spec using `@agent` and `@handoff` declarations, then run:
+Create a workflow spec using `@agent`, `@handoff`, `@phase`, `@retry`, `@fallback`, and `@join` declarations, then run:
 
 ```bash
 python -m specomega plan --path .specomega/agents.md

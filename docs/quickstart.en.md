@@ -61,6 +61,8 @@ python -m specomega analyze --path .specify/specs/user_management.spec openspec/
 
 ## 6. Plan a multi-agent workflow
 
+You can define a workflow spec using role declarations, handoffs, phases, fallback paths, and merge points. The orchestrator will parse these annotations and return a structured plan for review or downstream execution.
+
 ```bash
 python -m specomega plan --path .specomega/agents.md
 ```

@@ -16,7 +16,7 @@ def main() -> None:
         config["repository_sources"] = ["local-git-server", "internal-git"]
     analyzer = VibecodeAnalyzer()
     result = analyzer.analyze(
-        "Local git server review should flag vibecode workflow usage. Trace: prompt->model->patch. Intent: deliver release validation. Source: local-git-server",
+        "Local git server review should flag vibecode workflow usage. Trace: prompt->model->patch. Intent: deliver release validation. Source: local-git-server. Workflow: planner->implementer->reviewer",
         config=config,
     )
     output_dir = ROOT / ".specomega" / "reports"

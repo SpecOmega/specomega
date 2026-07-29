@@ -2,7 +2,7 @@
 
 ## SpecOmega 0.1.0
 
-This release introduces a lightweight verification layer for specification-driven engineering workflows. It supports verification of spec constraints, audit-friendly reporting, multi-agent planning, and AI-assisted risk analysis.
+This release introduces an engineering-oriented verification layer for specification-driven workflows. It supports verification of spec constraints, audit-friendly reporting, multi-agent planning with phases/retries/fallbacks, and AI-assisted risk analysis.
 
 ### Highlights
 - Machine-checkable verification of spec fragments

@@ -7,7 +7,7 @@ SpecOmega is an engineering-oriented verification and governance layer for speci
 - Verification engine: dispatches verifiers for spec markers and evidence checks.
 - Verifiers: validate contract, trace, security, tool-call sequence, and Vibecode requirements.
 - Vibecode analyzer: detects keyword signals, source types, confidence, and evidence for AI-assisted or templated content.
-- Multi-agent orchestrator: parses agent and handoff rules and validates workflow structure.
+- Multi-agent orchestrator: parses agent, handoff, phase, retry, fallback, and join rules, then validates workflow structure and readiness.
 - Risk analyzer: inspects spec and trace data and emits structured recommendations.
 - CLI: offers entry points for verification, analysis, planning, risk reporting, and Vibecode governance output, with optional LLM-backed summaries and local fallback logic.
 

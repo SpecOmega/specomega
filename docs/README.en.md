@@ -8,7 +8,7 @@ It does not replace the full workflow of tools such as Spec Kit, OpenSpec, or Su
 
 - Verify specification fragments against implementation evidence
 - Validate agent traces and tool-call sequences
-- Plan multi-agent workflows and handoff contracts
+- Plan multi-agent workflows with phases, handoffs, retries, fallbacks, and merge points, and validate them as executable contracts
 - Emit risk reports in JSON, Markdown, SARIF, and HTML
 - Integrate with CI and review pipelines with policy gates and evidence artifacts
 

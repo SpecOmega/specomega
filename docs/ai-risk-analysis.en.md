@@ -1,6 +1,6 @@
 # AI Risk Analysis
 
-SpecOmega includes a lightweight risk-analysis module that inspects spec content and execution traces to identify potential issues such as missing pre-checks, insecure state transitions, and risky write operations.
+SpecOmega includes an engineering-oriented risk-analysis module that inspects spec content and execution traces to identify potential issues such as missing pre-checks, insecure state transitions, risky write operations, and weak multi-agent handoff discipline.
 
 ## Output
 

@@ -1,6 +1,6 @@
 # Project Overview
 
-SpecOmega is a lightweight specification-verification framework for engineering workflows. It helps teams move from informal requirements to machine-checkable evidence by validating spec markers, reviewing agent execution traces, and generating structured risk reports.
+SpecOmega is an engineering-oriented specification-verification framework for workflow governance. It helps teams move from informal requirements to machine-checkable evidence by validating spec markers, reviewing agent execution traces, planning multi-agent workflows, and generating structured risk reports.
 
 ## Why it exists
 

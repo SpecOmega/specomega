@@ -100,6 +100,7 @@ class MultiAgentOrchestrator:
         }
 
     def _extract_phases(self, spec: str) -> List[Dict]:
+        """Extract explicit workflow phases from @phase markers when present."""
         phase_blocks = []
         for match in re.finditer(r"@phase\s*:\s*([a-zA-Z0-9_-]+)\s*(?:\(([^)]*)\))?", spec):
             phase_name = match.group(1)
@@ -113,24 +114,28 @@ class MultiAgentOrchestrator:
         return [match.strip() for match in re.findall(pattern, spec) if match and match.strip()]
 
     def _extract_retry_policies(self, spec: str) -> List[Dict]:
+        """Capture retry policies such as @retry: implementer:3 for resilient handoffs."""
         policies = []
         for match in re.finditer(r"@retry:\s*([a-zA-Z0-9_-]+):(\d+)", spec):
             policies.append({"role": match.group(1), "max_attempts": int(match.group(2))})
         return policies
 
     def _extract_fallbacks(self, spec: str) -> List[Dict]:
+        """Capture fallback paths such as @fallback: implementer->reviewer."""
         fallbacks = []
         for match in re.finditer(r"@fallback:\s*([a-zA-Z0-9_-]+)->([a-zA-Z0-9_-]+)", spec):
             fallbacks.append({"role": match.group(1), "fallback_role": match.group(2)})
         return fallbacks
 
     def _extract_merge_points(self, spec: str) -> List[str]:
+        """Extract join/merge markers that represent convergence points in the workflow."""
         merge_points = []
         for match in re.finditer(r"@join:\s*([a-zA-Z0-9_-]+)", spec):
             merge_points.append(match.group(1))
         return merge_points
 
     def _derive_dependencies(self, role: str, handoffs: List[tuple]) -> List[str]:
+        """Infer upstream dependencies from handoff edges targeting the current role."""
         dependencies = []
         for src, dst in handoffs:
             if dst == role:

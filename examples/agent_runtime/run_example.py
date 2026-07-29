@@ -36,6 +36,7 @@ def main() -> None:
     print("\nNext steps:")
     print("  python -m specomega verify --path .")
     print("  python -m specomega risk --spec examples/agent_runtime/spec.md --trace examples/agent_runtime/agent_trace.json --output-dir .specomega/reports --format markdown")
+    print("  python -m specomega plan --path .specomega/agents.md")
 
 
 if __name__ == "__main__":
