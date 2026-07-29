@@ -2,10 +2,45 @@
 
 ## SpecOmega 0.1.0
 
-SpecOmega 0.1.0 provides an engineering-oriented verification layer for specification-driven workflows. It helps teams validate spec constraints, inspect agent traces, plan multi-agent handoffs with phases/retries/fallbacks, and export structured risk reports for review and CI.
+### 版本目标
 
-### Highlights
-- Machine-checkable verification of spec fragments
-- Multi-agent workflow planning and handoff validation
-- Risk analysis and report export in JSON, Markdown, SARIF, and HTML
-- Example runner and CI workflow for reproducible validation
+SpecOmega 0.1.0 面向规范驱动工程场景，提供一层可验证、可审计、可扩展的治理中枢。它帮助团队把规范约束转成机器可执行的检查结果，并把多 Agent 协作中的交接规则与生成式代码风险变成可审计的工程契约。
+
+### 主要内容
+
+- 支持基于规范片段的机器可验证检查
+- 支持多 Agent 工作流的角色、阶段、交接与回退评估
+- 支持风险分析与多格式报告输出（JSON / Markdown / SARIF / HTML / CSV）
+- 提供示例运行器与 CI 工作流，便于快速复现与集成
+
+### 文档与工程体验优化
+
+- 增加 CLI 元信息与 `info` 子命令
+- 增加开发者指南与贡献流程说明
+- 优化 README 与 quickstart 的新手引导路径
+
+### 验证情况
+
+已通过以下命令完成验证：
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+### 兼容性与迁移说明
+
+- 该版本保持对现有 CLI 子命令的兼容，新增 `info`、`--version` 与更完整的帮助输出
+- 若现有流程依赖旧版输出格式，建议优先使用新的 JSON / Markdown / SARIF / HTML / CSV 报告产物
+
+### 发布检查清单
+
+- [x] 变更已通过单元测试
+- [x] CLI 帮助与文档已可用
+- [x] 示例运行器与 CI 工作流已验证
+- [ ] 如需正式发布，可补充发布前审批与变更说明
+
+### 后续规划
+
+- 持续扩展验证器与规则覆盖范围
+- 增加更丰富的多 Agent 场景示例
+- 进一步强化与审计平台、CI 系统的集成能力

@@ -8,9 +8,11 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
+from specomega import __version__
 from specomega.engine import VerificationEngine
 from specomega.verifiers.ast_verifier import AstVerifier
 from specomega.agents.orchestrator import MultiAgentOrchestrator
+from specomega.analysis.frameworks import describe_framework_stack
 from specomega.analysis.llm_adapter import LLMAdapter
 from specomega.analysis.risk_analyzer import RiskAnalyzer, analyze_agent_risks
 from specomega.analysis.vibecode import VibecodeAnalyzer
@@ -223,6 +225,56 @@ class SpecOmegaEngineTests(unittest.TestCase):
             blocked, status = analyzer.evaluate_policy_gate(result, analyzer.load_config(config_path))
             self.assertTrue(blocked)
             self.assertEqual("blocked", status)
+
+    def test_cli_help_lists_core_commands(self):
+        from specomega.cli import main
+
+        with patch.object(sys, "argv", ["specomega", "--help"]):
+            with redirect_stdout(io.StringIO()) as stdout:
+                with self.assertRaises(SystemExit) as cm:
+                    main()
+        self.assertEqual(0, cm.exception.code)
+        help_output = stdout.getvalue()
+        self.assertIn("info", help_output)
+        self.assertIn("verify", help_output)
+        self.assertIn("vibecode", help_output)
+        self.assertIn("First-time user", help_output)
+        self.assertIn("CI integration", help_output)
+
+    def test_cli_without_subcommand_prints_guidance(self):
+        from specomega.cli import main
+
+        with patch.object(sys, "argv", ["specomega"]):
+            with redirect_stdout(io.StringIO()) as stdout:
+                payload = main()
+        output = stdout.getvalue()
+        self.assertIn("Getting started", output)
+        self.assertIn("python -m specomega info", output)
+        self.assertEqual("guide", payload["status"])
+
+    def test_cli_info_reports_package_metadata(self):
+        from specomega.cli import main
+
+        with patch.object(sys, "argv", ["specomega", "info"]):
+            with redirect_stdout(io.StringIO()) as stdout:
+                result = main()
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual("specomega", payload["name"])
+        self.assertEqual(__version__, payload["version"])
+        self.assertEqual("ok", payload["status"])
+        self.assertIn("verify", payload["commands"])
+        self.assertIn("documentation", payload)
+        self.assertIn("source", payload)
+
+    def test_cli_version_reports_package_version(self):
+        from specomega.cli import main
+
+        with patch.object(sys, "argv", ["specomega", "--version"]):
+            with redirect_stdout(io.StringIO()) as stdout:
+                with self.assertRaises(SystemExit) as cm:
+                    main()
+        self.assertEqual(0, cm.exception.code)
+        self.assertIn(__version__, stdout.getvalue())
 
     def test_vibecode_cli_exports_report(self):
         from specomega.cli import main
@@ -699,6 +751,17 @@ class SpecOmegaEngineTests(unittest.TestCase):
             self.assertIsInstance(result, dict)
             self.assertEqual(["planner", "implementer"], [step["role"] for step in result["workflow"]])
             self.assertEqual(1, len(result["handoffs"]))
+
+    def test_framework_stack_describes_spec_kit_openspec_and_superpowers(self):
+        overview = describe_framework_stack()
+        self.assertEqual("spec-driven-engineering", overview["mode"])
+        self.assertIn("spec_kit", overview["frameworks"])
+        self.assertIn("openspec", overview["frameworks"])
+        self.assertIn("superpowers", overview["frameworks"])
+        self.assertEqual("requirements and acceptance criteria", overview["frameworks"]["spec_kit"]["primary_role"])
+        self.assertEqual("execution and governance", overview["frameworks"]["superpowers"]["primary_role"])
+        self.assertIn("specomega", overview["coordination"]["governance_layer"])
+        self.assertIn("IEEE 29148", overview["coordination"]["reference_standards"])
 
     def test_cli_can_export_sarif_and_fail_on_warning(self):
         from specomega.cli import main

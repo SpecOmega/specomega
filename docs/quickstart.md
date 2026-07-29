@@ -15,7 +15,14 @@ cd /workspaces/specomega
 python -m unittest discover -s tests -v
 ```
 
-这一步会确认当前实现已经可正常运行，并为后续的验证、规划与审计任务建立基线。
+这一步会确认当前实现已经可正常运行，并为后续的验证、规划与审计任务建立基线。若你想先看一下 CLI 的基础入口，可以再执行：
+
+```bash
+python -m specomega --version
+python -m specomega info
+```
+
+你应当看到版本号，以及包含 `verify`、`plan`、`risk`、`vibecode` 等命令的元信息输出。
 
 ## 3. 运行第一个示例
 

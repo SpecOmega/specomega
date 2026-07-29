@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+from . import __version__
 from .agents.orchestrator import MultiAgentOrchestrator
 from .analysis.risk_analyzer import analyze_agent_risks
 from .analysis.vibecode import VibecodeAnalyzer
@@ -376,8 +377,22 @@ def export_html(report: dict) -> str:
 
 
 def main() -> Optional[dict]:
-    parser = argparse.ArgumentParser(prog="specomega")
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    parser = argparse.ArgumentParser(
+        prog="specomega",
+        description="SpecOmega: verification and governance layer for spec-driven engineering",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Common workflows:\n"
+            "  First-time user: python -m specomega info\n"
+            "  Quick validation: python -m specomega verify --path .\n"
+            "  Vibecode audit: python -m specomega vibecode --paths docs specomega --output-dir .specomega/reports\n"
+            "  CI integration: python -m specomega vibecode --paths docs specomega --output-dir .specomega/reports --format sarif --strict"
+        ),
+    )
+    parser.add_argument("--version", action="store_true", help="Show the installed package version")
+    subparsers = parser.add_subparsers(dest="command")
+
+    subparsers.add_parser("info", help="Show package metadata and available commands")
 
     verify = subparsers.add_parser("verify", help="Verify spec markers against implementation evidence")
     verify.add_argument("--path", default=".", help="Path to a spec file or project root")
@@ -410,6 +425,24 @@ def main() -> Optional[dict]:
     bootstrap = subparsers.add_parser("bootstrap", help="Run the default smoke-test workflow")
 
     args = parser.parse_args()
+    if args.version:
+        print(__version__)
+        raise SystemExit(0)
+    if not args.command:
+        guide_text = """Getting started with SpecOmega:\n  - Run 'python -m specomega info' to inspect available commands\n  - Run 'python -m specomega verify --path .' to validate specs in this project\n  - Run 'python -m specomega vibecode --paths docs specomega --output-dir .specomega/reports' to audit Vibecode signals\n"""
+        print(guide_text)
+        return {"status": "guide", "message": guide_text.strip()}
+    if args.command == "info":
+        payload = {
+            "name": "specomega",
+            "version": __version__,
+            "status": "ok",
+            "commands": ["verify", "analyze", "plan", "risk", "vibecode", "bootstrap", "info"],
+            "documentation": "https://github.com/cloudsoa/specomega/tree/main/docs",
+            "source": "https://github.com/cloudsoa/specomega",
+        }
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return payload
     if args.command == "verify":
         report = verify_path(args.path, framework=args.framework)
         print(json.dumps(report, indent=2, ensure_ascii=False))

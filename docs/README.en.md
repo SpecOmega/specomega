@@ -25,3 +25,12 @@ python examples/agent_runtime/run_example.py
 - [docs/architecture.en.md](architecture.en.md)
 - [docs/user-guide.en.md](user-guide.en.md)
 - [docs/release-notes.en.md](release-notes.en.md)
+
+## Framework coordination
+
+SpecOmega is positioned as the verification and governance layer for a broader spec-driven engineering ecosystem:
+
+- Spec Kit defines requirements and acceptance criteria.
+- OpenSpec turns those requirements into structured change contracts.
+- Superpowers enforces execution discipline and operational safeguards.
+- SpecOmega verifies whether the intended behavior, the implemented change, and the runtime evidence align.

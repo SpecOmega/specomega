@@ -8,3 +8,4 @@
 - Added multi-agent orchestration with handoff, phase, retry, fallback, and merge-point awareness.
 - Added AI-assisted risk analysis output, local fallback logic, and structured report export.
 - Added CI workflow and example runner for end-to-end validation and governance review.
+- Added richer CLI metadata, package metadata, and documentation links for easier adoption and maintenance.

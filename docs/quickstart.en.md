@@ -15,7 +15,14 @@ cd /workspaces/specomega
 python -m unittest discover -s tests -v
 ```
 
-This confirms the current implementation is runnable.
+This confirms the current implementation is runnable. To inspect the CLI entry points before running your first workflow, use:
+
+```bash
+python -m specomega --version
+python -m specomega info
+```
+
+You should see a version string and a structured payload listing commands such as `verify`, `plan`, `risk`, and `vibecode`.
 
 ## 3. Run the first example
 
