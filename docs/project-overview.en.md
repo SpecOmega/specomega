@@ -12,3 +12,4 @@ Many engineering teams write specifications but still rely on manual review to e
 - Inspect tool-call sequences and execution traces
 - Plan multi-agent handoffs and workflow structure
 - Produce CI-friendly reports and risk summaries
+- Detect and govern Vibecode-style signals from AI-assisted or templated code

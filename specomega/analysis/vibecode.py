@@ -66,14 +66,17 @@ class VibecodeAnalyzer:
         severity = self._severity(score)
         source_type, source_confidence, source_evidence = self._classify_source(text)
         config = self.load_config(config_path)
-        risk_level, recommended_actions = self._risk_profile_from_config(source_type, source_confidence, config)
+        profile_name = config.get("profile") if isinstance(config, dict) else None
+        profile_config = self._get_profile_config(config, profile_name)
+        effective_threshold = int(profile_config.get("threshold", config.get("threshold", 2)))
+        risk_level, recommended_actions = self._risk_profile_from_config(source_type, source_confidence, profile_config)
         summary_stats = {
             "flagged_files": 1 if (score >= 2 or "vibecode" in normalized or source_type != "unknown") else 0,
             "source_type": source_type,
             "confidence": round(source_confidence, 2),
         }
         return {
-            "is_vibecode": score >= 2 or "vibecode" in normalized,
+            "is_vibecode": score >= effective_threshold or ("vibecode" in normalized and effective_threshold <= 1),
             "score": score,
             "severity": severity,
             "matched_keywords": matched,
@@ -84,6 +87,8 @@ class VibecodeAnalyzer:
             "recommended_actions": recommended_actions,
             "summary": self._summary(matched, source_type, source_confidence),
             "summary_stats": summary_stats,
+            "profile": profile_name,
+            "threshold": effective_threshold,
         }
 
     def scan_paths(self, paths: List[str], config_path: Path | None = None) -> Dict:
@@ -168,6 +173,24 @@ class VibecodeAnalyzer:
             return json.loads(target.read_text(encoding="utf-8"))
         except Exception:
             return {}
+
+    def _get_profile_config(self, config: Dict, profile_name: str | None) -> Dict:
+        if not isinstance(config, dict):
+            return config or {}
+        profiles = config.get("profiles", {}) if isinstance(config.get("profiles", {}), dict) else {}
+        if profile_name and profile_name in profiles:
+            profile_cfg = profiles[profile_name]
+            if isinstance(profile_cfg, dict):
+                merged = dict(config)
+                merged.pop("profiles", None)
+                merged.pop("profile", None)
+                merged.update(profile_cfg)
+                if "rules" in profile_cfg and isinstance(profile_cfg.get("rules"), dict):
+                    merged["rules"] = {**(config.get("rules", {}) or {}), **profile_cfg.get("rules", {})}
+                if "policy" in profile_cfg and isinstance(profile_cfg.get("policy"), dict):
+                    merged["policy"] = {**(config.get("policy", {}) or {}), **profile_cfg.get("policy", {})}
+                return merged
+        return config
 
     def _severity(self, score: int) -> str:
         if score >= 6:
@@ -305,7 +328,9 @@ class VibecodeAnalyzer:
         return "low", ["keep current review flow"]
 
     def evaluate_policy_gate(self, result: Dict, config: Dict) -> tuple[bool, str]:
-        policy = config.get("policy", {}) or {}
+        profile_name = config.get("profile") if isinstance(config, dict) else None
+        effective_config = self._get_profile_config(config, profile_name)
+        policy = effective_config.get("policy", {}) or {}
         if not isinstance(policy, dict):
             return False, "pass"
         threshold = policy.get("block_on", "medium")

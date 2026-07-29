@@ -262,7 +262,8 @@ def main() -> None:
     elif args.command == "vibecode":
         analyzer = VibecodeAnalyzer()
         config = analyzer.load_config(Path(args.config))
-        threshold = int(config.get("threshold", 2))
+        effective_config = analyzer._get_profile_config(config, config.get("profile") if isinstance(config, dict) else None)
+        threshold = int(effective_config.get("threshold", config.get("threshold", 2)))
         if args.paths:
             expanded_paths = []
             for raw_path in args.paths:
