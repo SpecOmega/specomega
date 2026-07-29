@@ -59,13 +59,13 @@ class VibecodeAnalyzer:
             r"\basync\b",
         ]
 
-    def analyze(self, text: str, config_path: Path | None = None) -> Dict:
+    def analyze(self, text: str, config_path: Path | None = None, config: Dict | None = None) -> Dict:
         normalized = (text or "").lower()
         matched = [keyword for keyword in self.keywords if keyword in normalized]
         score = sum(self.weight_map.get(keyword, 1) for keyword in matched)
         severity = self._severity(score)
         source_type, source_confidence, source_evidence = self._classify_source(text)
-        config = self.load_config(config_path)
+        config = config if config is not None else self.load_config(config_path)
         profile_name = config.get("profile") if isinstance(config, dict) else None
         profile_config = self._get_profile_config(config, profile_name)
         effective_threshold = int(profile_config.get("threshold", config.get("threshold", 2)))
@@ -89,10 +89,14 @@ class VibecodeAnalyzer:
             "summary_stats": summary_stats,
             "profile": profile_name,
             "threshold": effective_threshold,
+            "policy": profile_config.get("policy", {}),
         }
 
-    def scan_paths(self, paths: List[str], config_path: Path | None = None) -> Dict:
+    def scan_paths(self, paths: List[str], config_path: Path | None = None, config: Dict | None = None) -> Dict:
         files = []
+        config = config if config is not None else self.load_config(config_path)
+        profile_name = config.get("profile") if isinstance(config, dict) else None
+        profile_config = self._get_profile_config(config, profile_name)
         combined_score = 0
         matched_keywords: List[str] = []
         source_summary: Dict[str, int] = {}
@@ -105,7 +109,7 @@ class VibecodeAnalyzer:
                 for item in sorted(path.rglob("*")):
                     if item.is_file():
                         text = item.read_text(encoding="utf-8", errors="ignore")
-                        result = self.analyze(text, config_path=config_path)
+                        result = self.analyze(text, config_path=config_path, config=config)
                         if result["score"] or result["source_type"] != "unknown":
                             language = self._infer_language(str(item))
                             language_summary[language] = language_summary.get(language, 0) + 1
@@ -124,7 +128,7 @@ class VibecodeAnalyzer:
                 continue
             if path.is_file():
                 text = path.read_text(encoding="utf-8", errors="ignore")
-                result = self.analyze(text, config_path=config_path)
+                result = self.analyze(text, config_path=config_path, config=config)
                 if result["score"] or result["source_type"] != "unknown":
                     language = self._infer_language(path.name)
                     language_summary[language] = language_summary.get(language, 0) + 1
@@ -157,6 +161,9 @@ class VibecodeAnalyzer:
             "audit_summary": audit_summary,
             "file_summary": file_summary,
             "summary": self._summary(sorted(set(matched_keywords))),
+            "profile": profile_name,
+            "threshold": int(profile_config.get("threshold", config.get("threshold", 2))),
+            "policy": profile_config.get("policy", {}),
             "summary_stats": {
                 "flagged_files": len(files),
                 "source_types": source_summary,

@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -45,6 +46,17 @@ def export_vibecode_report(result: dict, output_dir: Path, format_name: str = "j
             markdown_lines.append("- Recommended Actions:")
             for action in result.get("recommended_actions", []):
                 markdown_lines.append(f"  - {action}")
+    profile_name = result.get("profile") or result.get("profile_name")
+    if profile_name or result.get("threshold") is not None or result.get("policy"):
+        markdown_lines.append("")
+        markdown_lines.append("## Governance Profile")
+        markdown_lines.append(f"- Profile: **{profile_name or 'default'}**")
+        markdown_lines.append(f"- Threshold: **{result.get('threshold', 'n/a')}**")
+        policy = result.get("policy") or {}
+        if policy:
+            markdown_lines.append("- Policy:")
+            for key, value in sorted(policy.items()):
+                markdown_lines.append(f"  - {key}: {value}")
     if result.get("audit_summary"):
         markdown_lines.append("")
         markdown_lines.append("## Audit Summary")
@@ -87,6 +99,20 @@ def export_vibecode_report(result: dict, output_dir: Path, format_name: str = "j
             "<h2>Summary</h2>",
             f"<p>{result.get('summary', '')}</p>",
         ]
+        profile_name = result.get("profile") or result.get("profile_name")
+        if profile_name or result.get("threshold") is not None or result.get("policy"):
+            html_lines.append("<h2>Governance Profile</h2>")
+            html_lines.append("<ul>")
+            html_lines.append(f"<li><strong>Profile:</strong> {profile_name or 'default'}</li>")
+            html_lines.append(f"<li><strong>Threshold:</strong> {result.get('threshold', 'n/a')}</li>")
+            policy = result.get("policy") or {}
+            if policy:
+                html_lines.append("<li><strong>Policy:</strong></li>")
+                html_lines.append("<ul>")
+                for key, value in sorted(policy.items()):
+                    html_lines.append(f"<li>{key}: {value}</li>")
+                html_lines.append("</ul>")
+            html_lines.append("</ul>")
         if result.get("audit_summary"):
             html_lines.append("<h2>Audit Summary</h2>")
             html_lines.append("<ul>")
@@ -147,6 +173,18 @@ def export_vibecode_report(result: dict, output_dir: Path, format_name: str = "j
     ]
     (output_dir / "vibecode_gate.txt").write_text("\n".join(gate_lines), encoding="utf-8")
 
+    summary_lines = [
+        "Vibecode Summary",
+        f"severity={result.get('severity', 'none')}",
+        f"risk_level={result.get('risk_level', 'low')}",
+        f"source={result.get('source_type', 'unknown')}",
+        f"confidence={result.get('source_confidence', 0.0):.2f}",
+        f"profile={result.get('profile') or 'default'}",
+        f"threshold={result.get('threshold', 'n/a')}",
+        f"summary={result.get('summary', '')}",
+    ]
+    (output_dir / "vibecode_summary.txt").write_text("\n".join(summary_lines), encoding="utf-8")
+
 
 def export_sarif(report: dict) -> str:
     findings = []
@@ -206,6 +244,7 @@ def main() -> None:
     vibecode.add_argument("--format", choices=["json", "markdown", "sarif", "html", "csv"], default="json", help="Report format to emit")
     vibecode.add_argument("--strict", action="store_true", help="Exit with status 1 when Vibecode signals are detected")
     vibecode.add_argument("--config", default=".specomega/vibecode_config.json", help="Path to Vibecode config file")
+    vibecode.add_argument("--profile", default=None, help="Optional profile name to use from the config file")
 
     bootstrap = subparsers.add_parser("bootstrap", help="Run the default smoke-test workflow")
 
@@ -262,7 +301,11 @@ def main() -> None:
     elif args.command == "vibecode":
         analyzer = VibecodeAnalyzer()
         config = analyzer.load_config(Path(args.config))
-        effective_config = analyzer._get_profile_config(config, config.get("profile") if isinstance(config, dict) else None)
+        selected_profile = args.profile or os.getenv("VIBECODE_PROFILE") or (config.get("profile") if isinstance(config, dict) else None)
+        effective_config = analyzer._get_profile_config(config, selected_profile)
+        if args.profile or os.getenv("VIBECODE_PROFILE"):
+            effective_config = dict(effective_config)
+            effective_config["profile"] = selected_profile
         threshold = int(effective_config.get("threshold", config.get("threshold", 2)))
         if args.paths:
             expanded_paths = []
@@ -272,10 +315,12 @@ def main() -> None:
                     expanded_paths.extend(str(item) for item in path.rglob("*") if item.is_file())
                 else:
                     expanded_paths.append(str(path))
-            result = analyzer.scan_paths(expanded_paths, config_path=Path(args.config))
+            result = analyzer.scan_paths(expanded_paths, config_path=Path(args.config), config=effective_config)
         else:
-            result = analyzer.analyze(args.text, config_path=Path(args.config))
+            result = analyzer.analyze(args.text, config_path=Path(args.config), config=effective_config)
         result["threshold"] = threshold
+        result["profile"] = selected_profile
+        result["policy"] = effective_config.get("policy", {})
         result["is_vibecode"] = result.get("score", 0) >= threshold
         output_dir = Path(args.output_dir)
         export_vibecode_report(result, output_dir, format_name=args.format, config=config)

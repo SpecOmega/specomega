@@ -1,7 +1,10 @@
+import io
 import json
+import os
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
@@ -176,6 +179,34 @@ class SpecOmegaEngineTests(unittest.TestCase):
                 main()
             self.assertTrue(Path(tmpdir, "vibecode_report.html").exists())
 
+    def test_vibecode_cli_exports_rich_markdown_and_html(self):
+        from specomega.cli import main
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / "vibecode_config.json"
+            config_path.write_text(json.dumps({
+                "threshold": 1,
+                "profile": "audit",
+                "profiles": {
+                    "audit": {
+                        "threshold": 2,
+                        "policy": {"block_on": "medium"},
+                    }
+                },
+            }), encoding="utf-8")
+            with patch.object(sys, "argv", ["specomega", "vibecode", "hello vibecode", "--output-dir", tmpdir, "--config", str(config_path), "--format", "markdown"]):
+                main()
+            markdown = Path(tmpdir, "vibecode_report.md").read_text(encoding="utf-8")
+            self.assertIn("## Governance Profile", markdown)
+            self.assertIn("audit", markdown)
+            self.assertIn("block_on", markdown)
+
+            with patch.object(sys, "argv", ["specomega", "vibecode", "hello vibecode", "--output-dir", tmpdir, "--config", str(config_path), "--format", "html"]):
+                main()
+            html = Path(tmpdir, "vibecode_report.html").read_text(encoding="utf-8")
+            self.assertIn("<h2>Governance Profile</h2>", html)
+            self.assertIn("block_on", html)
+
     def test_vibecode_cli_exports_csv(self):
         from specomega.cli import main
 
@@ -183,6 +214,18 @@ class SpecOmegaEngineTests(unittest.TestCase):
             with patch.object(sys, "argv", ["specomega", "vibecode", "hello vibecode", "--output-dir", tmpdir, "--format", "csv"]):
                 main()
             self.assertTrue(Path(tmpdir, "vibecode_report.csv").exists())
+
+    def test_vibecode_cli_writes_ci_summary_artifact(self):
+        from specomega.cli import main
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch.object(sys, "argv", ["specomega", "vibecode", "hello vibecode", "--output-dir", tmpdir]):
+                main()
+            summary_path = Path(tmpdir, "vibecode_summary.txt")
+            self.assertTrue(summary_path.exists())
+            summary = summary_path.read_text(encoding="utf-8")
+            self.assertIn("Vibecode Summary", summary)
+            self.assertIn("severity=medium", summary)
 
     def test_vibecode_cli_writes_governance_gate(self):
         from specomega.cli import main
@@ -228,6 +271,53 @@ class SpecOmegaEngineTests(unittest.TestCase):
             with patch.object(sys, "argv", ["specomega", "vibecode", "hello vibecode", "--output-dir", tmpdir]):
                 main()
             self.assertTrue(Path(tmpdir, "vibecode_git.txt").exists())
+
+    def test_vibecode_cli_respects_profile_override(self):
+        from specomega.cli import main
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / "vibecode_config.json"
+            config_path.write_text(json.dumps({
+                "threshold": 1,
+                "profile": "default",
+                "profiles": {
+                    "audit": {
+                        "threshold": 3,
+                        "policy": {"block_on": "medium"},
+                    }
+                },
+            }), encoding="utf-8")
+            stdout = io.StringIO()
+            with patch.object(sys, "argv", ["specomega", "vibecode", "hello vibecode", "--output-dir", tmpdir, "--config", str(config_path), "--profile", "audit"]):
+                with redirect_stdout(stdout):
+                    main()
+            payload = json.loads(Path(tmpdir, "vibecode_report.json").read_text(encoding="utf-8"))
+            self.assertEqual("audit", payload["profile"])
+            self.assertEqual(3, payload["threshold"])
+            self.assertEqual("medium", payload.get("policy", {}).get("block_on"))
+
+    def test_vibecode_cli_respects_environment_profile_override(self):
+        from specomega.cli import main
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / "vibecode_config.json"
+            config_path.write_text(json.dumps({
+                "threshold": 1,
+                "profile": "default",
+                "profiles": {
+                    "audit": {
+                        "threshold": 4,
+                        "policy": {"block_on": "high"},
+                    }
+                },
+            }), encoding="utf-8")
+            with patch.object(sys, "argv", ["specomega", "vibecode", "hello vibecode", "--output-dir", tmpdir, "--config", str(config_path)]):
+                with patch.dict(os.environ, {"VIBECODE_PROFILE": "audit"}, clear=False):
+                    main()
+            payload = json.loads(Path(tmpdir, "vibecode_report.json").read_text(encoding="utf-8"))
+            self.assertEqual("audit", payload["profile"])
+            self.assertEqual(4, payload["threshold"])
+            self.assertEqual("high", payload.get("policy", {}).get("block_on"))
 
     def test_ci_workflow_exists_for_vibecode(self):
         workflow_path = Path(__file__).resolve().parents[1] / ".github" / "workflows" / "vibecode.yml"
