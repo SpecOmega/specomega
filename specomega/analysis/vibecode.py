@@ -67,6 +67,11 @@ class VibecodeAnalyzer:
         source_type, source_confidence, source_evidence = self._classify_source(text)
         config = self.load_config(config_path)
         risk_level, recommended_actions = self._risk_profile_from_config(source_type, source_confidence, config)
+        summary_stats = {
+            "flagged_files": 1 if (score >= 2 or "vibecode" in normalized or source_type != "unknown") else 0,
+            "source_type": source_type,
+            "confidence": round(source_confidence, 2),
+        }
         return {
             "is_vibecode": score >= 2 or "vibecode" in normalized,
             "score": score,
@@ -78,6 +83,7 @@ class VibecodeAnalyzer:
             "risk_level": risk_level,
             "recommended_actions": recommended_actions,
             "summary": self._summary(matched, source_type, source_confidence),
+            "summary_stats": summary_stats,
         }
 
     def scan_paths(self, paths: List[str], config_path: Path | None = None) -> Dict:
@@ -130,6 +136,8 @@ class VibecodeAnalyzer:
                     matched_keywords.extend(result["matched_keywords"])
                     source_summary[result["source_type"]] = source_summary.get(result["source_type"], 0) + 1
         risk_level, recommended_actions = self._risk_profile(source_summary, language_summary, files)
+        audit_summary = self._build_audit_summary(source_summary, language_summary, risk_level, recommended_actions)
+        file_summary = self._build_file_summary(files)
         return {
             "is_vibecode": combined_score >= 2,
             "score": combined_score,
@@ -141,7 +149,15 @@ class VibecodeAnalyzer:
             "summary_label": self._summary_label(source_summary, language_summary),
             "risk_level": risk_level,
             "recommended_actions": recommended_actions,
+            "audit_summary": audit_summary,
+            "file_summary": file_summary,
             "summary": self._summary(sorted(set(matched_keywords))),
+            "summary_stats": {
+                "flagged_files": len(files),
+                "source_types": source_summary,
+                "languages": language_summary,
+                "risk_level": risk_level,
+            },
         }
 
     def load_config(self, config_path: Path | None = None) -> Dict:
@@ -218,6 +234,27 @@ class VibecodeAnalyzer:
         dominant_language = max(language_summary.items(), key=lambda item: item[1])[0] if language_summary else "unknown"
         return f"governance: {dominant_source} across {dominant_language}"
 
+    def _build_audit_summary(self, source_summary: Dict[str, int], language_summary: Dict[str, int], risk_level: str, recommended_actions: List[str]) -> Dict:
+        return {
+            "risk_level": risk_level,
+            "recommended_actions": recommended_actions,
+            "source_summary": source_summary,
+            "language_summary": language_summary,
+            "total_files": sum(source_summary.values()),
+        }
+
+    def _build_file_summary(self, files: List[dict]) -> List[Dict]:
+        return [
+            {
+                "name": entry.get("name"),
+                "language": entry.get("language", "unknown"),
+                "source_type": entry.get("source_type", "unknown"),
+                "confidence": entry.get("source_confidence", 0.0),
+                "evidence": entry.get("source_evidence", []),
+            }
+            for entry in files
+        ]
+
     def _risk_profile(self, source_summary: Dict[str, int], language_summary: Dict[str, int], files: List[dict]) -> tuple[str, List[str]]:
         risk_order = {"low": 0, "medium": 1, "high": 2}
         selected_level = "low"
@@ -266,3 +303,15 @@ class VibecodeAnalyzer:
         if source_type == "template_generated":
             return "medium", ["inspect template scaffolds for customization quality"]
         return "low", ["keep current review flow"]
+
+    def evaluate_policy_gate(self, result: Dict, config: Dict) -> tuple[bool, str]:
+        policy = config.get("policy", {}) or {}
+        if not isinstance(policy, dict):
+            return False, "pass"
+        threshold = policy.get("block_on", "medium")
+        risk_level = result.get("risk_level", "low")
+        if risk_level == "high" and threshold in {"high", "medium", "low"}:
+            return True, "blocked"
+        if risk_level == "medium" and threshold in {"medium", "low"}:
+            return True, "blocked"
+        return False, "pass"

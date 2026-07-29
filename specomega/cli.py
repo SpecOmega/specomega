@@ -12,7 +12,7 @@ from .analysis.vibecode import VibecodeAnalyzer
 from .engine import VerificationEngine
 
 
-def export_vibecode_report(result: dict, output_dir: Path, format_name: str = "json") -> None:
+def export_vibecode_report(result: dict, output_dir: Path, format_name: str = "json", config: Optional[dict] = None) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "vibecode_report.json").write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
     markdown_lines = [
@@ -45,6 +45,19 @@ def export_vibecode_report(result: dict, output_dir: Path, format_name: str = "j
             markdown_lines.append("- Recommended Actions:")
             for action in result.get("recommended_actions", []):
                 markdown_lines.append(f"  - {action}")
+    if result.get("audit_summary"):
+        markdown_lines.append("")
+        markdown_lines.append("## Audit Summary")
+        for key, value in result.get("audit_summary", {}).items():
+            if isinstance(value, list):
+                markdown_lines.append(f"- {key}: {', '.join(str(item) for item in value)}")
+            else:
+                markdown_lines.append(f"- {key}: {value}")
+    if result.get("file_summary"):
+        markdown_lines.append("")
+        markdown_lines.append("## File Summary")
+        for entry in result.get("file_summary", []):
+            markdown_lines.append(f"- {entry.get('name')}: {entry.get('source_type')} ({entry.get('language')}, confidence={entry.get('confidence', 0.0):.2f})")
     markdown_lines.extend(["", result.get("summary", ""), ""])
     (output_dir / "vibecode_report.md").write_text("\n".join(markdown_lines), encoding="utf-8")
     if format_name == "sarif":
@@ -62,6 +75,52 @@ def export_vibecode_report(result: dict, output_dir: Path, format_name: str = "j
         }
         (output_dir / "vibecode_report.sarif").write_text(json.dumps(sarif_payload, indent=2, ensure_ascii=False), encoding="utf-8")
 
+    if format_name == "html":
+        html_lines = [
+            "<html><body>",
+            "<h1>Vibecode Audit Report</h1>",
+            f"<p><strong>Severity:</strong> {result.get('severity', 'none')}</p>",
+            f"<p><strong>Score:</strong> {result.get('score', 0)}</p>",
+            f"<p><strong>Source Type:</strong> {result.get('source_type', 'unknown')}</p>",
+            f"<p><strong>Source Confidence:</strong> {result.get('source_confidence', 0.0):.2f}</p>",
+            f"<p><strong>Risk Level:</strong> {result.get('risk_level', 'low')}</p>",
+            "<h2>Summary</h2>",
+            f"<p>{result.get('summary', '')}</p>",
+        ]
+        if result.get("audit_summary"):
+            html_lines.append("<h2>Audit Summary</h2>")
+            html_lines.append("<ul>")
+            for key, value in result.get("audit_summary", {}).items():
+                html_lines.append(f"<li><strong>{key}:</strong> {value}</li>")
+            html_lines.append("</ul>")
+        if result.get("file_summary"):
+            html_lines.append("<h2>File Summary</h2>")
+            html_lines.append("<ul>")
+            for entry in result.get("file_summary", []):
+                html_lines.append(f"<li>{entry.get('name')}: {entry.get('source_type')} ({entry.get('language')}, confidence={entry.get('confidence', 0.0):.2f})</li>")
+            html_lines.append("</ul>")
+        html_lines.extend(["</body></html>"])
+        (output_dir / "vibecode_report.html").write_text("\n".join(html_lines), encoding="utf-8")
+
+    if format_name == "csv":
+        rows = []
+        if result.get("file_summary"):
+            rows = [
+                ["name", "language", "source_type", "confidence", "evidence"],
+            ]
+            for entry in result.get("file_summary", []):
+                rows.append([
+                    entry.get("name", ""),
+                    entry.get("language", "unknown"),
+                    entry.get("source_type", "unknown"),
+                    f"{entry.get('confidence', 0.0):.2f}",
+                    ";".join(str(item) for item in entry.get("evidence", [])),
+                ])
+        else:
+            rows = [["name", "language", "source_type", "confidence", "evidence"], ["", "", "", "", ""]]
+        csv_content = "\n".join(",".join(str(cell).replace(",", " ") for cell in row) for row in rows)
+        (output_dir / "vibecode_report.csv").write_text(csv_content, encoding="utf-8")
+
     annotation_lines = [
         f"::warning title=Vibecode::{result.get('summary', '')} [severity={result.get('severity', 'none')}] [source={result.get('source_type', 'unknown')}] [confidence={result.get('source_confidence', 0.0):.2f}]"
     ] if result.get("is_vibecode") else []
@@ -71,6 +130,22 @@ def export_vibecode_report(result: dict, output_dir: Path, format_name: str = "j
         f"[vibecode] severity={result.get('severity', 'none')} score={result.get('score', 0)} source={result.get('source_type', 'unknown')} confidence={result.get('source_confidence', 0.0):.2f} {result.get('summary', '')}"
     ] if result.get("is_vibecode") else []
     (output_dir / "vibecode_git.txt").write_text("\n".join(git_lines), encoding="utf-8")
+
+    gate_blocked, gate_status = "", "pass"
+    if config is not None:
+        gate_blocked, gate_status = VibecodeAnalyzer().evaluate_policy_gate(result, config)
+    else:
+        gate_blocked = result.get("is_vibecode")
+        gate_status = "blocked" if gate_blocked else "pass"
+    gate_lines = [
+        f"status={'blocked' if gate_blocked else gate_status}",
+        f"risk_level={result.get('risk_level', 'low')}",
+        f"severity={result.get('severity', 'none')}",
+        f"source={result.get('source_type', 'unknown')}",
+        f"confidence={result.get('source_confidence', 0.0):.2f}",
+        f"actions={';'.join(result.get('recommended_actions', []))}",
+    ]
+    (output_dir / "vibecode_gate.txt").write_text("\n".join(gate_lines), encoding="utf-8")
 
 
 def export_sarif(report: dict) -> str:
@@ -128,7 +203,7 @@ def main() -> None:
     vibecode.add_argument("text", nargs="?", default="", help="Text to analyze")
     vibecode.add_argument("--paths", nargs="*", default=[], help="Optional file or directory paths to scan")
     vibecode.add_argument("--output-dir", default=".specomega/reports", help="Directory for Vibecode report output")
-    vibecode.add_argument("--format", choices=["json", "markdown", "sarif"], default="json", help="Report format to emit")
+    vibecode.add_argument("--format", choices=["json", "markdown", "sarif", "html", "csv"], default="json", help="Report format to emit")
     vibecode.add_argument("--strict", action="store_true", help="Exit with status 1 when Vibecode signals are detected")
     vibecode.add_argument("--config", default=".specomega/vibecode_config.json", help="Path to Vibecode config file")
 
@@ -202,7 +277,7 @@ def main() -> None:
         result["threshold"] = threshold
         result["is_vibecode"] = result.get("score", 0) >= threshold
         output_dir = Path(args.output_dir)
-        export_vibecode_report(result, output_dir, format_name=args.format)
+        export_vibecode_report(result, output_dir, format_name=args.format, config=config)
         if args.strict and result.get("is_vibecode"):
             raise SystemExit(1)
         if args.format == "sarif":

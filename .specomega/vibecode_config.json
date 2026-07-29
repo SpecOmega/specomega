@@ -1,6 +1,29 @@
 {
   "mode": "engine",
   "strict": false,
-  "threshold": 2,
-  "paths": ["docs", "specomega"]
+  "threshold": 1,
+  "paths": ["docs", "specomega"],
+  "rules": {
+    "llm_generated": {
+      "risk": "high",
+      "actions": [
+        "review AI-generated code for approval and provenance",
+        "require human validation before merge"
+      ]
+    },
+    "template_generated": {
+      "risk": "medium",
+      "actions": [
+        "inspect template scaffolds for customization quality",
+        "ensure boilerplate paths are documented and reviewed"
+      ]
+    },
+    "handwritten": {
+      "risk": "low",
+      "actions": [
+        "keep current review flow",
+        "retain source provenance notes for future audits"
+      ]
+    }
+  }
 }

@@ -144,6 +144,8 @@ python -m specomega vibecode --paths docs specomega --output-dir .specomega/repo
 
 当前会输出 severity（none/low/medium/high）信息，并生成 GitHub Actions 可识别的注释文件 [.specomega/reports/vibecode_annotations.txt](.specomega/reports/vibecode_annotations.txt)。同时还会生成适合本地 Git 服务/审查流程的文本摘要 [.specomega/reports/vibecode_git.txt](.specomega/reports/vibecode_git.txt)。
 
+你也可以通过 [.specomega/vibecode_config.json](.specomega/vibecode_config.json) 配置治理规则，例如为 `llm_generated` 指定高风险、为 `template_generated` 指定中风险，并自定义建议动作。目录扫描结果会同时输出 `risk_level`、`recommended_actions`、`source_summary`、`language_summary` 和 `summary_label`。
+
 规划多 Agent 工作流：
 
 ```bash
