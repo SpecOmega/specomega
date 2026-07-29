@@ -43,11 +43,22 @@ SpecOmega 的核心价值在于弥合“规范定义”与“代码执行”之�
 
 ## 文档索引
 
+- [docs/quickstart.md](docs/quickstart.md)：快速上手指南
 - [docs/architecture.md](docs/architecture.md)：架构与职责说明
 - [docs/user-guide.md](docs/user-guide.md)：使用手册
 - [docs/sdd-agent-contract.md](docs/sdd-agent-contract.md)：SDD 与多 Agent 协作契约
+- [docs/example-agent-runtime.md](docs/example-agent-runtime.md)：Agent 示例落地说明
 
 ## 快速使用
+
+### 运行 Agent 场景示例
+
+```bash
+python examples/agent_runtime/run_example.py
+```
+
+这条示例会读取 [examples/agent_runtime/spec.md](examples/agent_runtime/spec.md) 和 [examples/agent_runtime/agent_trace.json](examples/agent_runtime/agent_trace.json)，验证支付工具调用序列是否符合规范。
+
 
 运行测试：
 

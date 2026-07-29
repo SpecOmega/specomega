@@ -1,0 +1,4 @@
+{
+  "tool_calls": ["risk_check", "pay"],
+  "risk_level": "safe"
+}

@@ -6,13 +6,14 @@ from typing import Dict, List, Optional, Tuple
 from .verifiers.ast_verifier import AstVerifier
 from .verifiers.contract_verifier import ContractVerifier
 from .verifiers.security_verifier import SecurityVerifier
+from .verifiers.tool_call_verifier import ToolCallVerifier
 from .verifiers.trace_verifier import TraceVerifier
 
 
 class VerificationEngine:
     def __init__(self, verifier_classes=None) -> None:
         self.verifiers = []
-        for verifier_cls in verifier_classes or [AstVerifier, ContractVerifier, SecurityVerifier, TraceVerifier]:
+        for verifier_cls in verifier_classes or [AstVerifier, ContractVerifier, SecurityVerifier, ToolCallVerifier, TraceVerifier]:
             self.verifiers.append(verifier_cls())
 
     @classmethod
@@ -27,6 +28,7 @@ class VerificationEngine:
             "ast_verifier": AstVerifier,
             "contract_verifier": ContractVerifier,
             "security_verifier": SecurityVerifier,
+            "tool_call_verifier": ToolCallVerifier,
             "trace_verifier": TraceVerifier,
         }
         verifier_classes = [registry[name] for name in names if name in registry]
