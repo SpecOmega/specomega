@@ -46,6 +46,46 @@ def export_vibecode_report(result: dict, output_dir: Path, format_name: str = "j
             markdown_lines.append("- Recommended Actions:")
             for action in result.get("recommended_actions", []):
                 markdown_lines.append(f"  - {action}")
+    if result.get("behavior"):
+        markdown_lines.append("")
+        markdown_lines.append("## Behavior Analysis")
+        behavior = result.get("behavior", {})
+        for key, value in sorted(behavior.items()):
+            if key == "evidence":
+                continue
+            markdown_lines.append(f"- {key}: {value}")
+        if behavior.get("evidence"):
+            markdown_lines.append(f"- evidence: {', '.join(behavior.get('evidence', []))}")
+    if result.get("trace_analysis"):
+        markdown_lines.append("")
+        markdown_lines.append("## Trace Analysis")
+        trace = result.get("trace_analysis", {})
+        markdown_lines.append(f"- detected: {trace.get('detected')}")
+        if trace.get("evidence"):
+            markdown_lines.append(f"- evidence: {', '.join(trace.get('evidence', []))}")
+    if result.get("intent_analysis"):
+        markdown_lines.append("")
+        markdown_lines.append("## Intent & Goal Analysis")
+        intent = result.get("intent_analysis", {})
+        markdown_lines.append(f"- has_intent: {intent.get('has_intent')}")
+        markdown_lines.append(f"- has_goal: {intent.get('has_goal')}")
+        if intent.get("intent_text"):
+            markdown_lines.append(f"- intent: {intent.get('intent_text')}")
+        if intent.get("goal_text"):
+            markdown_lines.append(f"- goal: {intent.get('goal_text')}")
+    if result.get("dynamic_rules"):
+        markdown_lines.append("")
+        markdown_lines.append("## Dynamic Rules")
+        dynamic = result.get("dynamic_rules", {})
+        markdown_lines.append(f"- matched: {dynamic.get('matched')}")
+        if dynamic.get("matches"):
+            markdown_lines.append(f"- matches: {', '.join(dynamic.get('matches', []))}")
+    if result.get("classification"):
+        markdown_lines.append("")
+        markdown_lines.append("## Classification")
+        classification = result.get("classification", {})
+        for key, value in sorted(classification.items()):
+            markdown_lines.append(f"- {key}: {value}")
     profile_name = result.get("profile") or result.get("profile_name")
     if profile_name or result.get("threshold") is not None or result.get("policy"):
         markdown_lines.append("")
@@ -117,6 +157,46 @@ def export_vibecode_report(result: dict, output_dir: Path, format_name: str = "j
             html_lines.append("<h2>Audit Summary</h2>")
             html_lines.append("<ul>")
             for key, value in result.get("audit_summary", {}).items():
+                html_lines.append(f"<li><strong>{key}:</strong> {value}</li>")
+            html_lines.append("</ul>")
+        if result.get("behavior"):
+            html_lines.append("<h2>Behavior Analysis</h2>")
+            html_lines.append("<ul>")
+            for key, value in sorted(result.get("behavior", {}).items()):
+                if key == "evidence":
+                    continue
+                html_lines.append(f"<li><strong>{key}:</strong> {value}</li>")
+            if result.get("behavior", {}).get("evidence"):
+                html_lines.append(f"<li><strong>evidence:</strong> {', '.join(result.get('behavior', {}).get('evidence', []))}</li>")
+            html_lines.append("</ul>")
+        if result.get("trace_analysis"):
+            html_lines.append("<h2>Trace Analysis</h2>")
+            html_lines.append("<ul>")
+            html_lines.append(f"<li><strong>detected:</strong> {result.get('trace_analysis', {}).get('detected')}</li>")
+            if result.get("trace_analysis", {}).get("evidence"):
+                html_lines.append(f"<li><strong>evidence:</strong> {', '.join(result.get('trace_analysis', {}).get('evidence', []))}</li>")
+            html_lines.append("</ul>")
+        if result.get("intent_analysis"):
+            html_lines.append("<h2>Intent & Goal Analysis</h2>")
+            html_lines.append("<ul>")
+            html_lines.append(f"<li><strong>has_intent:</strong> {result.get('intent_analysis', {}).get('has_intent')}</li>")
+            html_lines.append(f"<li><strong>has_goal:</strong> {result.get('intent_analysis', {}).get('has_goal')}</li>")
+            if result.get("intent_analysis", {}).get("intent_text"):
+                html_lines.append(f"<li><strong>intent:</strong> {result.get('intent_analysis', {}).get('intent_text')}</li>")
+            if result.get("intent_analysis", {}).get("goal_text"):
+                html_lines.append(f"<li><strong>goal:</strong> {result.get('intent_analysis', {}).get('goal_text')}</li>")
+            html_lines.append("</ul>")
+        if result.get("dynamic_rules"):
+            html_lines.append("<h2>Dynamic Rules</h2>")
+            html_lines.append("<ul>")
+            html_lines.append(f"<li><strong>matched:</strong> {result.get('dynamic_rules', {}).get('matched')}</li>")
+            if result.get("dynamic_rules", {}).get("matches"):
+                html_lines.append(f"<li><strong>matches:</strong> {', '.join(result.get('dynamic_rules', {}).get('matches', []))}</li>")
+            html_lines.append("</ul>")
+        if result.get("classification"):
+            html_lines.append("<h2>Classification</h2>")
+            html_lines.append("<ul>")
+            for key, value in sorted(result.get("classification", {}).items()):
                 html_lines.append(f"<li><strong>{key}:</strong> {value}</li>")
             html_lines.append("</ul>")
         if result.get("file_summary"):

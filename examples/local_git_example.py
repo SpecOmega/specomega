@@ -11,7 +11,7 @@ from specomega.analysis.vibecode import VibecodeAnalyzer
 
 def main() -> None:
     analyzer = VibecodeAnalyzer()
-    result = analyzer.analyze("Local git server review should flag vibecode workflow usage.")
+    result = analyzer.analyze("Local git server review should flag vibecode workflow usage. Trace: prompt->model->patch. Intent: deliver release validation.")
     output_dir = ROOT / ".specomega" / "reports"
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "vibecode_git.txt").write_text(

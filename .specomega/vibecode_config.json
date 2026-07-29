@@ -24,6 +24,36 @@
         "keep current review flow",
         "retain source provenance notes for future audits"
       ]
+    },
+    "prompt_synthesis": {
+      "risk": "high",
+      "actions": [
+        "review prompt-driven generation flow",
+        "capture the intent and target outcome for auditability"
+      ],
+      "patterns": [
+        "synthesized from prompt",
+        "generated from prompt",
+        "prompt-driven"
+      ],
+      "weight": 3,
+      "category": "generation_behavior",
+      "label": "prompt_synthesis"
+    },
+    "autonomous_patch": {
+      "risk": "medium",
+      "actions": [
+        "inspect autonomous patching traces before merge",
+        "verify the expected change scope and acceptance criteria"
+      ],
+      "patterns": [
+        "prompt->model->patch",
+        "trace:",
+        "agent workflow"
+      ],
+      "weight": 2,
+      "category": "trace_behavior",
+      "label": "autonomous_patch"
     }
   }
 }
