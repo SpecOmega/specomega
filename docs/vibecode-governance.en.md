@@ -14,6 +14,8 @@ The Vibecode module is used to detect and govern signals that look like they wer
 - Dynamic-rule management via configuration, with support for `patterns`, `weight`, `risk`, `actions`, `category`, and `label`
 - Hierarchical classification with `hierarchy`, `category`, `review_priority`, and `confirmations`
 - Risk scoring that combines behavior, trace, intent, and dynamic rule evidence
+- Evidence breakdown into structured sections for auditability and traceability
+- Provenance hints from `repository_sources` and natural-language source markers
 - Policy-driven gate evaluation via configuration
 
 ## Output artifacts
@@ -40,6 +42,7 @@ The configuration file is [.specomega/vibecode_config.json](../.specomega/vibeco
 - `rules` for mapping source types to risk and actions
 - `rules.<name>.patterns` for dynamic rule matching over generation, tracing, or intent signals
 - `rules.<name>.weight` for increasing the Vibecode score when a rule matches
+- `repository_sources` for declaring known internal or local git providers so provenance hints can be generated
 - `policy.block_on` for deciding when the run should be blocked
 
 Example:
@@ -48,6 +51,7 @@ Example:
 {
   "threshold": 1,
   "policy": {"block_on": "medium"},
+  "repository_sources": ["local-git-server", "internal-git", "github"],
   "rules": {
     "llm_generated": {"risk": "high", "actions": ["review"]},
     "template_generated": {"risk": "medium", "actions": ["inspect"]}
@@ -59,4 +63,5 @@ Example:
 
 - Use stricter `block_on` rules for critical code paths
 - Use looser rules for docs and example directories
+- Populate `repository_sources` with your known Git servers or internal repositories so provenance hints are actionable
 - Connect `vibecode_gate.txt` into CI or approval workflows to create a governance checkpoint

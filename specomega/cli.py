@@ -89,6 +89,31 @@ def export_vibecode_report(result: dict, output_dir: Path, format_name: str = "j
         markdown_lines.append("")
         markdown_lines.append("## Provenance Hints")
         markdown_lines.append(f"- {', '.join(result.get('provenance_hints', [])) or 'n/a'}")
+    if result.get("git_provenance"):
+        git_provenance = result.get("git_provenance", {})
+        markdown_lines.append("")
+        markdown_lines.append("## Git Provenance")
+        markdown_lines.append(f"- available: {git_provenance.get('available')}")
+        if git_provenance.get("repo_root"):
+            markdown_lines.append(f"- repo_root: {git_provenance.get('repo_root')}")
+        if git_provenance.get("remote"):
+            markdown_lines.append(f"- remote: {git_provenance.get('remote')}")
+        if git_provenance.get("branch"):
+            markdown_lines.append(f"- branch: {git_provenance.get('branch')}")
+        if git_provenance.get("commit"):
+            markdown_lines.append(f"- commit: {git_provenance.get('commit')}")
+        if git_provenance.get("status"):
+            markdown_lines.append(f"- status: {git_provenance.get('status')}")
+    if result.get("change_summary"):
+        markdown_lines.append("")
+        markdown_lines.append("## Change Summary")
+        change_summary = result.get("change_summary", {})
+        if change_summary.get("repository_context"):
+            markdown_lines.append(f"- repository_context: {change_summary.get('repository_context')}")
+        if change_summary.get("signal_sources"):
+            markdown_lines.append(f"- signal_sources: {', '.join(change_summary.get('signal_sources', []))}")
+        if change_summary.get("review_focus"):
+            markdown_lines.append(f"- review_focus: {', '.join(change_summary.get('review_focus', []))}")
     if result.get("provenance_hints"):
         markdown_lines.append("")
         markdown_lines.append("## Repository Sources")
@@ -217,6 +242,34 @@ def export_vibecode_report(result: dict, output_dir: Path, format_name: str = "j
             html_lines.append("<ul>")
             html_lines.append(f"<li>{', '.join(result.get('provenance_hints', [])) or 'n/a'}</li>")
             html_lines.append("</ul>")
+        if result.get("git_provenance"):
+            git_provenance = result.get("git_provenance", {})
+            html_lines.append("<h2>Git Provenance</h2>")
+            html_lines.append("<ul>")
+            html_lines.append(f"<li><strong>available:</strong> {git_provenance.get('available')}</li>")
+            if git_provenance.get("repo_root"):
+                html_lines.append(f"<li><strong>repo_root:</strong> {git_provenance.get('repo_root')}</li>")
+            if git_provenance.get("remote"):
+                html_lines.append(f"<li><strong>remote:</strong> {git_provenance.get('remote')}</li>")
+            if git_provenance.get("branch"):
+                html_lines.append(f"<li><strong>branch:</strong> {git_provenance.get('branch')}</li>")
+            if git_provenance.get("commit"):
+                html_lines.append(f"<li><strong>commit:</strong> {git_provenance.get('commit')}</li>")
+            if git_provenance.get("status"):
+                html_lines.append(f"<li><strong>status:</strong> {git_provenance.get('status')}</li>")
+            html_lines.append("</ul>")
+        if result.get("change_summary"):
+            html_lines.append("<h2>Change Summary</h2>")
+            html_lines.append("<ul>")
+            change_summary = result.get("change_summary", {})
+            if change_summary.get("repository_context"):
+                html_lines.append(f"<li><strong>repository_context:</strong> {change_summary.get('repository_context')}</li>")
+            if change_summary.get("signal_sources"):
+                html_lines.append(f"<li><strong>signal_sources:</strong> {', '.join(change_summary.get('signal_sources', []))}</li>")
+            if change_summary.get("review_focus"):
+                html_lines.append(f"<li><strong>review_focus:</strong> {', '.join(change_summary.get('review_focus', []))}</li>")
+            html_lines.append("</ul>")
+        if result.get("provenance_hints"):
             html_lines.append("<h2>Repository Sources</h2>")
             html_lines.append("<ul>")
             html_lines.append(f"<li>{', '.join(result.get('provenance_hints', [])) or 'n/a'}</li>")

@@ -2,6 +2,7 @@
   "mode": "engine",
   "strict": false,
   "threshold": 1,
+  "repository_sources": ["local-git-server", "internal-git", "github"],
   "paths": ["docs", "specomega"],
   "rules": {
     "llm_generated": {
