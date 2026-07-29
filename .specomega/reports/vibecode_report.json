@@ -1,0 +1,11 @@
+{
+  "is_vibecode": true,
+  "score": 3,
+  "severity": "medium",
+  "matched_keywords": [
+    "vibecode",
+    "vibe"
+  ],
+  "summary": "Detected Vibecode-related signals: vibecode, vibe",
+  "threshold": 2
+}

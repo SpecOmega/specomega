@@ -1,0 +1,24 @@
+name: Vibecode Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  vibecode:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run Vibecode scan
+        run: |
+          python -m specomega vibecode --paths docs specomega --output-dir .specomega/reports --format sarif --config .specomega/vibecode_config.json
+      - name: Publish Vibecode annotations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vibecode-annotations
+          path: .specomega/reports/vibecode_annotations.txt

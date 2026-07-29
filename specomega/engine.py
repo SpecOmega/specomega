@@ -8,12 +8,13 @@ from .verifiers.contract_verifier import ContractVerifier
 from .verifiers.security_verifier import SecurityVerifier
 from .verifiers.tool_call_verifier import ToolCallVerifier
 from .verifiers.trace_verifier import TraceVerifier
+from .verifiers.vibecode_verifier import VibecodeVerifier
 
 
 class VerificationEngine:
     def __init__(self, verifier_classes=None) -> None:
         self.verifiers = []
-        for verifier_cls in verifier_classes or [AstVerifier, ContractVerifier, SecurityVerifier, ToolCallVerifier, TraceVerifier]:
+        for verifier_cls in verifier_classes or [AstVerifier, ContractVerifier, SecurityVerifier, ToolCallVerifier, TraceVerifier, VibecodeVerifier]:
             self.verifiers.append(verifier_cls())
 
     @classmethod
@@ -30,6 +31,7 @@ class VerificationEngine:
             "security_verifier": SecurityVerifier,
             "tool_call_verifier": ToolCallVerifier,
             "trace_verifier": TraceVerifier,
+            "vibecode_verifier": VibecodeVerifier,
         }
         verifier_classes = [registry[name] for name in names if name in registry]
         return cls(verifier_classes=verifier_classes or None)

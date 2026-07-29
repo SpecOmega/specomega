@@ -1,0 +1,26 @@
+import json
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from specomega.analysis.vibecode import VibecodeAnalyzer
+
+
+def main() -> None:
+    config_path = ROOT / ".specomega" / "vibecode_config.json"
+    config = json.loads(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
+    sample_text = "This repository uses a vibecode workflow with prompt-driven coding guidance."
+    analyzer = VibecodeAnalyzer()
+    result = analyzer.analyze(sample_text)
+    output_dir = ROOT / ".specomega" / "reports"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "vibecode_example.json").write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
+    (output_dir / "vibecode_example.md").write_text("# Vibecode Example\n\n" + result.get("summary", "") + "\n", encoding="utf-8")
+    print(json.dumps({"config": config, "result": result}, indent=2, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()

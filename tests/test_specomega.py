@@ -10,6 +10,7 @@ from specomega.verifiers.ast_verifier import AstVerifier
 from specomega.agents.orchestrator import MultiAgentOrchestrator
 from specomega.analysis.llm_adapter import LLMAdapter
 from specomega.analysis.risk_analyzer import RiskAnalyzer, analyze_agent_risks
+from specomega.analysis.vibecode import VibecodeAnalyzer
 from specomega.config import RuntimeConfig
 from specomega.verifiers.contract_verifier import ContractVerifier
 from specomega.verifiers.trace_verifier import TraceVerifier
@@ -52,6 +53,71 @@ class SpecOmegaEngineTests(unittest.TestCase):
         **验证要求**：@specomega: contract_check(page_zero=400)
         """
         report = engine.verify(spec, {"superpowers_session": "demo-session"})
+        self.assertEqual(1, len(report["results"]))
+        self.assertTrue(report["results"][0]["passed"])
+
+    def test_vibecode_analyzer_detects_vibecode_signature(self):
+        analyzer = VibecodeAnalyzer()
+        result = analyzer.analyze("This repository contains a vibecode workflow and vibe-driven coding hints.")
+        self.assertTrue(result["is_vibecode"])
+        self.assertGreaterEqual(result["score"], 2)
+        self.assertIn("vibecode", result["matched_keywords"])
+        self.assertIn(result["severity"], {"low", "medium", "high"})
+
+    def test_vibecode_analyzer_scans_files(self):
+        analyzer = VibecodeAnalyzer()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "sample.md"
+            path.write_text("Use a vibecode workflow with prompt-driven coding help.", encoding="utf-8")
+            result = analyzer.scan_paths([str(path)])
+            self.assertTrue(result["is_vibecode"])
+            self.assertEqual(1, len(result["files"]))
+            self.assertIn("sample.md", result["files"][0]["name"])
+
+    def test_vibecode_cli_exports_report(self):
+        from specomega.cli import main
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch.object(sys, "argv", ["specomega", "vibecode", "hello vibecode", "--output-dir", tmpdir]):
+                main()
+            self.assertTrue(Path(tmpdir, "vibecode_report.json").exists())
+            self.assertTrue(Path(tmpdir, "vibecode_report.md").exists())
+
+    def test_vibecode_cli_exports_sarif(self):
+        from specomega.cli import main
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch.object(sys, "argv", ["specomega", "vibecode", "hello vibecode", "--output-dir", tmpdir, "--format", "sarif"]):
+                main()
+            self.assertTrue(Path(tmpdir, "vibecode_report.sarif").exists())
+
+    def test_vibecode_threshold_from_config(self):
+        analyzer = VibecodeAnalyzer()
+        config = analyzer.load_config(Path(".specomega/vibecode_config.json"))
+        self.assertEqual(2, int(config.get("threshold", 2)))
+
+    def test_vibecode_cli_writes_local_git_output(self):
+        from specomega.cli import main
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch.object(sys, "argv", ["specomega", "vibecode", "hello vibecode", "--output-dir", tmpdir]):
+                main()
+            self.assertTrue(Path(tmpdir, "vibecode_git.txt").exists())
+
+    def test_ci_workflow_exists_for_vibecode(self):
+        workflow_path = Path(__file__).resolve().parents[1] / ".github" / "workflows" / "vibecode.yml"
+        self.assertTrue(workflow_path.exists())
+        content = workflow_path.read_text(encoding="utf-8")
+        self.assertIn("python -m specomega vibecode", content)
+
+    def test_engine_dispatches_vibecode_marker(self):
+        engine = VerificationEngine()
+        spec = """
+        ## [VIBE-001]
+        This spec describes a vibecode workflow for prompt-driven development.
+        **验证要求**：@specomega: vibecode_check(threshold=2)
+        """
+        report = engine.verify(spec, {})
         self.assertEqual(1, len(report["results"]))
         self.assertTrue(report["results"][0]["passed"])
 
@@ -133,6 +199,15 @@ class SpecOmegaEngineTests(unittest.TestCase):
         self.assertTrue(any(item["type"] == "tool_sequence" for item in report["findings"]))
         self.assertTrue(report["recommendations"])
 
+    def test_risk_analyzer_reports_vibecode_signal(self):
+        analyzer = RiskAnalyzer()
+        report = analyzer.analyze(
+            "This spec introduces a vibecode workflow with prompt-driven coding guidance.",
+            {"tool_calls": ["pay"], "risk_level": "safe", "state": "idle"},
+            use_remote=False,
+        )
+        self.assertTrue(any(item["type"] == "vibecode_signal" for item in report["findings"]))
+
     def test_analyze_agent_risks_cli_helper(self):
         report = analyze_agent_risks(
             "Must call risk_check before pay.",
@@ -140,6 +215,15 @@ class SpecOmegaEngineTests(unittest.TestCase):
             use_remote=False,
         )
         self.assertEqual("ok", report["risk_level"])
+
+    def test_analyze_agent_risks_remote_disabled_summary(self):
+        report = analyze_agent_risks(
+            "Must call risk_check before pay.",
+            {"tool_calls": ["risk_check", "pay"], "risk_level": "safe", "state": "idle"},
+            use_remote=False,
+        )
+        self.assertEqual("remote_disabled", report["llm_summary"]["status"])
+        self.assertFalse(report["llm_summary"]["remote"])
 
     def test_llm_adapter_builds_structured_risk_summary(self):
         adapter = LLMAdapter(provider="deepseek")

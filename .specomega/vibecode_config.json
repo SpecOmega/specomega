@@ -1,0 +1,6 @@
+{
+  "mode": "engine",
+  "strict": false,
+  "threshold": 2,
+  "paths": ["docs", "specomega"]
+}

@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from .llm_adapter import LLMAdapter
+from .vibecode import VibecodeAnalyzer
 
 
 class RiskAnalyzer:
@@ -27,12 +28,17 @@ class RiskAnalyzer:
             findings.append({"type": "permission_risk", "message": "存在写操作/越权执行风险"})
             recommendations.append("限制写操作范围并绑定仓库级权限边界")
 
+        vibecode = VibecodeAnalyzer().analyze(spec)
+        if vibecode["is_vibecode"]:
+            findings.append({"type": "vibecode_signal", "message": f"检测到 Vibecode 相关信号（score={vibecode['score']}）"})
+            recommendations.append("为 Vibecode 场景增加显式审查与回滚约束")
+
         risk_level = "ok"
         if findings:
             risk_level = "warning"
 
         config_path = config_path or Path(".specomega/llm_config.json")
-        llm_adapter = LLMAdapter(provider="deepseek", config_path=config_path)
+        llm_adapter = LLMAdapter(provider="deepseek", config_path=config_path, use_remote=use_remote)
         if llm_threshold:
             llm_adapter.runtime_config.llm_threshold = llm_threshold
             llm_adapter.llm_threshold = llm_threshold

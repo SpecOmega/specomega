@@ -1,0 +1,1 @@
+[vibecode] severity=medium score=3 Detected Vibecode-related signals: vibecode, vibe

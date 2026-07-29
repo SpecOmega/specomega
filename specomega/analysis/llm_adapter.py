@@ -9,9 +9,10 @@ from ..config import RuntimeConfig
 class LLMAdapter:
     """A lightweight adapter for integrating LLM-based risk summarization."""
 
-    def __init__(self, provider: str = "deepseek", api_key: Optional[str] = None, base_url: Optional[str] = None, config_path: Optional[Path] = None) -> None:
+    def __init__(self, provider: str = "deepseek", api_key: Optional[str] = None, base_url: Optional[str] = None, config_path: Optional[Path] = None, use_remote: bool = True) -> None:
         self.provider = provider
         self.config_path = config_path
+        self.use_remote = use_remote
         self.runtime_config = RuntimeConfig.from_file(config_path)
         self.mode = self.runtime_config.mode
         self.enable_llm = self.runtime_config.enable_llm or self.mode == "llm"
@@ -38,7 +39,10 @@ class LLMAdapter:
         findings = findings or []
         risk_level = trace.get("risk_level") or ("warning" if findings else "ok")
 
-        if self.enable_llm and self.api_key and self.runtime_config.should_use_llm(risk_level):
+        if not self.use_remote:
+            self.last_status = "remote_disabled"
+            self._append_log(f"remote_disabled mode={self.mode} enable_llm={self.enable_llm} threshold={self.llm_threshold} risk_level={risk_level}")
+        elif self.enable_llm and self.api_key and self.runtime_config.should_use_llm(risk_level):
             try:
                 import urllib.request
                 payload = json.dumps({
@@ -91,7 +95,8 @@ class LLMAdapter:
             else:
                 summary = "风险分析：规范要求在支付前执行 risk_check，当前轨迹存在前置检查缺失或风险状态异常。"
 
-        self.last_status = "engine_fallback" if self.mode == "engine" or not self.enable_llm else "local_fallback"
+        if self.last_status not in {"llm_remote", "llm_fallback", "engine_fallback", "local_fallback", "remote_disabled"}:
+            self.last_status = "engine_fallback" if self.mode == "engine" or not self.enable_llm else "local_fallback"
         self._append_log(f"{self.last_status} mode={self.mode} enable_llm={self.enable_llm} threshold={self.llm_threshold} risk_level={risk_level}")
         return {
             "provider": self.provider,

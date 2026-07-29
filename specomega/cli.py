@@ -8,7 +8,45 @@ from typing import Optional
 
 from .agents.orchestrator import MultiAgentOrchestrator
 from .analysis.risk_analyzer import analyze_agent_risks
+from .analysis.vibecode import VibecodeAnalyzer
 from .engine import VerificationEngine
+
+
+def export_vibecode_report(result: dict, output_dir: Path, format_name: str = "json") -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "vibecode_report.json").write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
+    (output_dir / "vibecode_report.md").write_text(
+        "# Vibecode Report\n\n"
+        + f"- Severity: **{result.get('severity', 'none')}**\n"
+        + f"- Score: {result.get('score', 0)}\n\n"
+        + result.get("summary", "")
+        + "\n",
+        encoding="utf-8",
+    )
+    if format_name == "sarif":
+        sarif_payload = {
+            "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [{
+                "tool": {"driver": {"name": "SpecOmega Vibecode", "rules": []}},
+                "results": [{
+                    "ruleId": "vibecode-signal",
+                    "level": "warning" if result.get("is_vibecode") else "none",
+                    "message": {"text": f"{result.get('summary', '')} [severity={result.get('severity', 'none')}]"},
+                }],
+            }],
+        }
+        (output_dir / "vibecode_report.sarif").write_text(json.dumps(sarif_payload, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    annotation_lines = [
+        f"::warning title=Vibecode::{result.get('summary', '')} [severity={result.get('severity', 'none')}]"
+    ] if result.get("is_vibecode") else []
+    (output_dir / "vibecode_annotations.txt").write_text("\n".join(annotation_lines), encoding="utf-8")
+
+    git_lines = [
+        f"[vibecode] severity={result.get('severity', 'none')} score={result.get('score', 0)} {result.get('summary', '')}"
+    ] if result.get("is_vibecode") else []
+    (output_dir / "vibecode_git.txt").write_text("\n".join(git_lines), encoding="utf-8")
 
 
 def export_sarif(report: dict) -> str:
@@ -62,6 +100,14 @@ def main() -> None:
     analyze_risk.add_argument("--llm-threshold", default=None, help="Override the minimum risk level that can trigger remote LLM usage")
     analyze_risk.add_argument("--config", default=".specomega/llm_config.json", help="Path to runtime config file")
 
+    vibecode = subparsers.add_parser("vibecode", help="Analyze text or files for Vibecode-related signals")
+    vibecode.add_argument("text", nargs="?", default="", help="Text to analyze")
+    vibecode.add_argument("--paths", nargs="*", default=[], help="Optional file or directory paths to scan")
+    vibecode.add_argument("--output-dir", default=".specomega/reports", help="Directory for Vibecode report output")
+    vibecode.add_argument("--format", choices=["json", "markdown", "sarif"], default="json", help="Report format to emit")
+    vibecode.add_argument("--strict", action="store_true", help="Exit with status 1 when Vibecode signals are detected")
+    vibecode.add_argument("--config", default=".specomega/vibecode_config.json", help="Path to Vibecode config file")
+
     bootstrap = subparsers.add_parser("bootstrap", help="Run the default smoke-test workflow")
 
     args = parser.parse_args()
@@ -114,6 +160,33 @@ def main() -> None:
             print(export_sarif(report))
         else:
             print(export_html(report))
+    elif args.command == "vibecode":
+        analyzer = VibecodeAnalyzer()
+        config = analyzer.load_config(Path(args.config))
+        threshold = int(config.get("threshold", 2))
+        if args.paths:
+            expanded_paths = []
+            for raw_path in args.paths:
+                path = Path(raw_path)
+                if path.is_dir():
+                    expanded_paths.extend(str(item) for item in path.rglob("*") if item.is_file())
+                else:
+                    expanded_paths.append(str(path))
+            result = analyzer.scan_paths(expanded_paths)
+        else:
+            result = analyzer.analyze(args.text)
+        result["threshold"] = threshold
+        result["is_vibecode"] = result.get("score", 0) >= threshold
+        output_dir = Path(args.output_dir)
+        export_vibecode_report(result, output_dir, format_name=args.format)
+        if args.strict and result.get("is_vibecode"):
+            raise SystemExit(1)
+        if args.format == "sarif":
+            print((output_dir / "vibecode_report.sarif").read_text(encoding="utf-8"))
+        elif args.format == "markdown":
+            print((output_dir / "vibecode_report.md").read_text(encoding="utf-8"))
+        else:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
     elif args.command == "bootstrap":
         commands = [
             [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],

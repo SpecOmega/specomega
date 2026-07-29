@@ -33,6 +33,7 @@ SpecOmega 的核心价值在于弥合“规范定义”与“代码执行”之�
 - 安全规则验证器：`security_check`
 - 配置驱动的验证器加载
 - 多 Agent 工作流编排与交接契约检查
+- Vibecode 信号自动识别与验证
 - CLI 入口与报告输出
 
 ## 适用场景
@@ -118,6 +119,30 @@ python -m specomega verify --path .
 ```bash
 python -m specomega analyze --path .specify/specs/user_management.spec openspec/specs/user_management.md
 ```
+
+识别 Vibecode 信号：
+
+```bash
+python -m specomega vibecode "this repo uses vibecode workflow"
+python -m specomega vibecode --paths docs specomega --output-dir .specomega/reports
+python -m specomega vibecode "hello vibecode" --format sarif --output-dir .specomega/reports
+```
+
+运行 Vibecode 示例脚本：
+
+```bash
+python examples/vibecode_example.py
+```
+
+可复用配置位于 [.specomega/vibecode_config.json](.specomega/vibecode_config.json)，可在 CI 中直接按此目录与阈值执行扫描。
+
+CI 工作流已添加至 [.github/workflows/vibecode.yml](.github/workflows/vibecode.yml)，可在 GitHub Actions 中自动执行：
+
+```bash
+python -m specomega vibecode --paths docs specomega --output-dir .specomega/reports --format sarif --config .specomega/vibecode_config.json
+```
+
+当前会输出 severity（none/low/medium/high）信息，并生成 GitHub Actions 可识别的注释文件 [.specomega/reports/vibecode_annotations.txt](.specomega/reports/vibecode_annotations.txt)。同时还会生成适合本地 Git 服务/审查流程的文本摘要 [.specomega/reports/vibecode_git.txt](.specomega/reports/vibecode_git.txt)。
 
 规划多 Agent 工作流：
 
