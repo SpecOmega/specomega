@@ -466,6 +466,72 @@ class SpecOmegaEngineTests(unittest.TestCase):
         self.assertFalse(result["valid"])
         self.assertIn("reviewer", result["missing_roles"])
 
+    def test_multi_agent_orchestrator_tracks_phases_and_readiness(self):
+        orchestrator = MultiAgentOrchestrator()
+        spec = """
+        ## Goal
+        @phase: planning (capture objectives)
+        @phase: execution (implement changes)
+        @agent: planner
+        @agent: implementer
+        @agent: reviewer
+        @handoff: planner->implementer
+        @handoff: implementer->reviewer
+        """
+        plan = orchestrator.plan(spec)
+        self.assertEqual("planning", plan["workflow"][0]["phase"])
+        self.assertEqual("execution", plan["workflow"][1]["phase"])
+        self.assertEqual("execution", plan["workflow"][2]["phase"])
+        self.assertEqual(3, plan["summary"]["role_count"])
+
+        result = orchestrator.execute(spec)
+        self.assertTrue(result["valid"])
+        self.assertIn("review gate present", result["readiness"]["reasons"])
+
+    def test_multi_agent_orchestrator_parses_constraints_and_execution_state(self):
+        orchestrator = MultiAgentOrchestrator()
+        spec = """
+        ## Goal
+        @agent: planner
+        @agent: implementer
+        @agent: reviewer
+        @constraint: planner must produce design
+        @validation: reviewer must confirm implementation
+        @deliverable: design-doc
+        @handoff: planner->implementer
+        @handoff: implementer->reviewer
+        """
+        plan = orchestrator.plan(spec)
+        self.assertIn("planner must produce design", plan["constraints"])
+        self.assertIn("reviewer must confirm implementation", plan["validations"])
+        self.assertIn("design-doc", plan["deliverables"])
+        self.assertEqual(["planner"], plan["workflow"][1]["dependencies"])
+
+        result = orchestrator.execute(spec)
+        self.assertEqual("ready", result["workflow"][0]["status"])
+        self.assertEqual("ready", result["workflow"][1]["status"])
+        self.assertEqual("ready", result["workflow"][2]["status"])
+
+    def test_multi_agent_orchestrator_tracks_state_machine_events_and_retry(self):
+        orchestrator = MultiAgentOrchestrator()
+        spec = """
+        ## Goal
+        @agent: planner
+        @agent: implementer
+        @retry: planner:2
+        @fallback: implementer->reviewer
+        @handoff: planner->implementer
+        """
+        plan = orchestrator.plan(spec)
+        self.assertIn({"role": "planner", "max_attempts": 2}, plan["retry_policies"])
+        self.assertIn({"role": "implementer", "fallback_role": "reviewer"}, plan["fallbacks"])
+
+        result = orchestrator.execute(spec)
+        self.assertEqual("ready", result["workflow"][0]["status"])
+        self.assertEqual("waiting", result["workflow"][1]["status"])
+        self.assertTrue(any(event["type"] == "retry_scheduled" for event in result["events"]))
+        self.assertTrue(any(event["type"] == "fallback_proposed" for event in result["events"]))
+
     def test_risk_analyzer_reports_security_and_state_risks(self):
         analyzer = RiskAnalyzer()
         spec = """

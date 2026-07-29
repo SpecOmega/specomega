@@ -3,22 +3,123 @@ from typing import Dict, List, Optional
 
 
 class MultiAgentOrchestrator:
-    """A lightweight orchestrator for SDD-style multi-agent workflows."""
+    """A richer orchestrator for SDD-style multi-agent workflows."""
 
     def plan(self, spec: str) -> Dict:
         roles = re.findall(r"@agent:\s*([a-zA-Z0-9_-]+)", spec)
         handoffs = re.findall(r"@handoff:\s*([a-zA-Z0-9_-]+)->([a-zA-Z0-9_-]+)", spec)
-        workflow = [{"role": role, "step": index + 1} for index, role in enumerate(roles)]
-        return {"workflow": workflow, "handoffs": [{"from": src, "to": dst} for src, dst in handoffs]}
+        phases = self._extract_phases(spec)
+        constraints = self._extract_items(spec, r"@constraint:\s*(.+)")
+        validations = self._extract_items(spec, r"@validation:\s*(.+)")
+        deliverables = self._extract_items(spec, r"@deliverable:\s*([a-zA-Z0-9_.-]+)")
+        workflow = []
+        for index, role in enumerate(roles):
+            phase = self._phase_for_role(role, phases, index)
+            dependencies = self._derive_dependencies(role, handoffs)
+            workflow.append({
+                "role": role,
+                "step": index + 1,
+                "phase": phase,
+                "status": "planned",
+                "entry_conditions": self._default_entry_conditions(role),
+                "exit_conditions": self._default_exit_conditions(role),
+                "dependencies": dependencies,
+            })
+        handoff_contracts = [{"from": src, "to": dst} for src, dst in handoffs]
+        return {
+            "workflow": workflow,
+            "handoffs": handoff_contracts,
+            "phases": phases,
+            "constraints": constraints,
+            "validations": validations,
+            "deliverables": deliverables,
+            "summary": self._summarize_workflow(workflow, handoff_contracts),
+        }
 
     def execute(self, spec: str) -> Dict:
         plan = self.plan(spec)
         roles = [step["role"] for step in plan["workflow"]]
         handoff_targets = {item["to"] for item in plan["handoffs"]}
         missing_roles = sorted(set(handoff_targets) - set(roles))
+        dependency_violations = self._detect_dependency_violations(plan)
+        readiness = self._evaluate_readiness(plan)
+        workflow = []
+        for step in plan["workflow"]:
+            state = "ready" if not dependency_violations else "blocked"
+            workflow.append({**step, "status": state})
         return {
-            "valid": not missing_roles,
-            "workflow": plan["workflow"],
+            "valid": not missing_roles and not dependency_violations,
+            "workflow": workflow,
             "handoffs": plan["handoffs"],
             "missing_roles": missing_roles,
+            "dependency_violations": dependency_violations,
+            "readiness": readiness,
+            "summary": plan.get("summary", {}),
+        }
+
+    def _extract_phases(self, spec: str) -> List[Dict]:
+        phase_blocks = []
+        for match in re.finditer(r"@phase\s*:\s*([a-zA-Z0-9_-]+)\s*(?:\(([^)]*)\))?", spec):
+            phase_name = match.group(1)
+            description = match.group(2) or ""
+            phase_blocks.append({"name": phase_name, "description": description.strip()})
+        if not phase_blocks:
+            return [{"name": "execution", "description": "default execution phase"}]
+        return phase_blocks
+
+    def _extract_items(self, spec: str, pattern: str) -> List[str]:
+        return [match.strip() for match in re.findall(pattern, spec) if match and match.strip()]
+
+    def _derive_dependencies(self, role: str, handoffs: List[tuple]) -> List[str]:
+        dependencies = []
+        for src, dst in handoffs:
+            if dst == role:
+                dependencies.append(src)
+        return dependencies
+
+    def _phase_for_role(self, role: str, phases: List[Dict], index: int) -> str:
+        if not phases:
+            return "execution"
+        if role.startswith("review"):
+            return phases[min(len(phases) - 1, max(0, len(phases) - 1))]["name"]
+        phase_index = min(index, len(phases) - 1)
+        return phases[phase_index]["name"]
+
+    def _default_entry_conditions(self, role: str) -> List[str]:
+        base = ["role declared", "inputs available"]
+        if role.startswith("review"):
+            base.append("artifact ready for review")
+        return base
+
+    def _default_exit_conditions(self, role: str) -> List[str]:
+        base = ["output produced", "handoff contract satisfied"]
+        if role.startswith("review"):
+            base.append("review decision recorded")
+        return base
+
+    def _detect_dependency_violations(self, plan: Dict) -> List[Dict]:
+        violations = []
+        roles = {step["role"] for step in plan.get("workflow", [])}
+        for handoff in plan.get("handoffs", []):
+            if handoff["from"] not in roles or handoff["to"] not in roles:
+                violations.append({"type": "missing_role", "handoff": handoff})
+        return violations
+
+    def _evaluate_readiness(self, plan: Dict) -> Dict:
+        workflow = plan.get("workflow", [])
+        if not workflow:
+            return {"ready": False, "reasons": ["no agent roles declared"]}
+        reasons = []
+        if any(step.get("role") == "reviewer" for step in workflow):
+            reasons.append("review gate present")
+        if len(workflow) >= 2:
+            reasons.append("multi-agent pipeline available")
+        return {"ready": True, "reasons": reasons}
+
+    def _summarize_workflow(self, workflow: List[Dict], handoffs: List[Dict]) -> Dict:
+        return {
+            "role_count": len(workflow),
+            "handoff_count": len(handoffs),
+            "roles": [step["role"] for step in workflow],
+            "handoffs": [f"{item['from']}->{item['to']}" for item in handoffs],
         }
