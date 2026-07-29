@@ -1,7 +1,7 @@
 # SpecOmega
 
-[![CI](https://github.com/cloudsoa/specomega/actions/workflows/ci.yml/badge.svg)](https://github.com/cloudsoa/specomega/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/cloudsoa/specomega/ci.yml?branch=main&label=CI)](https://github.com/cloudsoa/specomega/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 SpecOmega 是一个面向“规范 - 执行 - 验证 - 治理”闭环的工程中枢。它不替代 Spec Kit、OpenSpec 或 Superpowers 的主流程，而是为它们提供一个统一的验证与审计层：把规范中的可验证约束转成机器可执行的检查结果，并把多 Agent 协作中的交接规则与生成式代码风险变成可审计、可执行、可扩展的工程契约。
 
